@@ -1,0 +1,694 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Windmill — Preview</title>
+<meta name="description" content="A preview of the Windmill desktop app.">
+<!-- For the shipped app, bundle these fonts and three.js locally instead of loading them from the web. -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Piazzolla:opsz,wght@8..30,400&family=Inter:wght@500;600&display=block">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<style>
+:root {
+  --paper: #ffffff;
+  --ink: #141413;
+  --blue: #0141FD;
+  --blue-rgb: 1, 65, 253;
+  --serif: "Piazzolla", "Iowan Old Style", Georgia, serif;
+  --sans: "Inter", "Segoe UI Variable", "Segoe UI", system-ui, sans-serif;
+  color-scheme: light;
+}
+* { box-sizing: border-box; }
+html, body { height: 100%; margin: 0; }
+body {
+  background: var(--paper);
+  color: var(--ink);
+  overflow: hidden;
+  -webkit-font-smoothing: antialiased;
+  user-select: none;
+}
+
+/* ---------- centre column ---------- */
+.center {
+  position: absolute; inset: 0; z-index: 1;
+  display: grid; place-items: center; align-content: center;
+  gap: 4px;
+  padding: 0 max(16px, env(safe-area-inset-right, 0px)) 0 max(16px, env(safe-area-inset-left, 0px));
+}
+svg.word { width: min(860px, 92vw); height: auto; overflow: visible; display: block; }
+.word text {
+  font-family: var(--serif);
+  font-size: 200px;
+  font-variation-settings: "opsz" 30;
+  fill: var(--blue);
+}
+.core, .sail, .tittle { fill: var(--blue); }
+.dot, .mill { transform-box: fill-box; transform-origin: center; }
+.dot { transform: scale(0); }
+.dot.on { transform: scale(1); }
+.mill { transform: scale(0); }
+.mill.pop { animation: millpop .15s steps(3, jump-none) forwards; }
+.mill .sail { transform-box: view-box; transform-origin: 50px 50px; }
+.mill.crush { translate: 0px 0px !important; transition: translate .18s steps(3, jump-none); }
+.mill.crush .sail { animation: crush .18s steps(3, jump-none) forwards; }
+.spin { transform-box: view-box; animation: tick .3s steps(3, jump-end) 3; }
+@keyframes millpop { 0% { transform: scale(0) rotate(-40deg) } 60% { transform: scale(1.2) rotate(8deg) } 100% { transform: scale(1) rotate(0) } }
+@keyframes crush   { from { transform: scale(1) } to { transform: scale(0) } }
+@keyframes tick    { from { transform: rotate(0deg) } to { transform: rotate(-90deg) } }
+
+/* ---------- Sign in with GitHub ---------- */
+.cta-slot { position: relative; height: 60px; display: grid; place-items: center; }
+.pill {
+  position: relative;
+  isolation: isolate;
+  appearance: none; border: 0; cursor: pointer;
+  height: 54px;
+  padding: 0 28px 0 22px;
+  border-radius: 999px;
+  display: inline-flex; align-items: center; gap: 12px;
+  font: 600 15.5px/1 var(--sans);
+  letter-spacing: -0.005em;
+  color: #fff;
+  background: rgb(var(--blue-rgb));
+  box-shadow:
+    0 1px 2px rgba(var(--blue-rgb), .25),
+    0 8px 22px -10px rgba(var(--blue-rgb), .55);
+  white-space: nowrap;
+  overflow: hidden;
+  transition: background .12s steps(2, jump-none), width .2s steps(3, jump-none);
+  visibility: hidden;
+  clip-path: inset(0 100% 0 0 round 999px);
+}
+.pill.in {
+  visibility: visible;
+  animation: wipe .2s steps(3, jump-start) forwards;
+}
+@keyframes wipe {
+  from { clip-path: inset(0 100% 0 0 round 999px); }
+  to   { clip-path: inset(0 0 0 0 round 999px); }
+}
+.pill.done { clip-path: none; }
+.pill svg { width: 20px; height: 20px; flex: none; position: relative; z-index: 2; }
+.pill .label { position: relative; z-index: 2; text-shadow: 0 1px 0 rgba(0, 20, 90, .18); }
+
+.pill:hover { background: #0036E0; }
+.pill:active { transform: scale(.97); }
+.pill.loading { padding: 0; gap: 0; justify-content: center; cursor: progress; background: rgb(var(--blue-rgb)); }
+.pill.loading .label { display: none; }
+.pill .gh { transition: opacity .22s ease, transform .35s cubic-bezier(.3,0,.2,1); }
+.pill.loading .gh { width: 20px; height: 20px; }
+.pill.done-ok .gh { opacity: 0; transform: scale(.55); }
+
+/* the loader inside the dot */
+.pill .ring {
+  position: absolute; left: 50%; top: 50%;
+  width: 54px; height: 54px; margin: -27px 0 0 -27px;
+  opacity: 0; transition: opacity .3s ease;
+  pointer-events: none; z-index: 2; overflow: visible;
+}
+.pill.loading .ring { opacity: 1; transition-delay: .18s; }
+.ring circle, .ring path { fill: none; stroke: #fff; stroke-linecap: round; }
+.ring circle { stroke-width: 2.2; }
+.ring .track { stroke: rgba(255, 255, 255, .2); }
+.ring .arc {
+  transform-box: fill-box; transform-origin: center;
+  stroke-dasharray: 16 132;
+  animation: ring-rot 1.15s linear infinite, ring-breathe 1.7s ease-in-out infinite;
+  transition: opacity .25s ease;
+}
+@keyframes ring-rot { to { transform: rotate(360deg); } }
+@keyframes ring-breathe {
+  0%   { stroke-dasharray: 12 132; stroke-dashoffset: 0; }
+  50%  { stroke-dasharray: 62 132; stroke-dashoffset: -18; }
+  100% { stroke-dasharray: 12 132; stroke-dashoffset: -120; }
+}
+.ring .full {
+  transform-box: fill-box; transform-origin: center; transform: rotate(-90deg);
+  stroke-dasharray: 132; stroke-dashoffset: 132;
+  transition: stroke-dashoffset .55s cubic-bezier(.4, 0, .2, 1);
+}
+.ring .check {
+  stroke-width: 2.6; stroke-linejoin: round;
+  stroke-dasharray: 24; stroke-dashoffset: 24;
+  transition: stroke-dashoffset .45s cubic-bezier(.3, 0, .2, 1) .38s;
+}
+.pill.done-ok .ring .arc { opacity: 0; }
+.pill.done-ok .ring .full { stroke-dashoffset: 0; }
+.pill.done-ok .ring .check { stroke-dashoffset: 0; }
+.pill.closing {
+  transform: scale(0); opacity: 0;
+  transition: transform .5s cubic-bezier(.6, -0.28, .74, .05), opacity .3s ease .2s;
+}
+.cta-slot { transition: height 1s cubic-bezier(.65, 0, .35, 1); }
+.cta-slot.gone { height: 0; }
+.pill:focus-visible { outline: 2px solid var(--blue); outline-offset: 5px; }
+
+/* ---------- hologram ---------- */
+.holo {
+  position: fixed;
+  left: 0; right: 0; bottom: 0;
+  height: clamp(220px, 37vh, 380px);
+  z-index: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+.holo canvas { width: 100%; height: 100%; display: block; }
+.holo::after {
+  content: ""; position: absolute; inset: 0;
+  background: repeating-linear-gradient(180deg, rgba(255,255,255,0) 0 2px, rgba(255,255,255,.4) 2px 3px);
+  pointer-events: none;
+}
+.holo.in { visibility: visible; }
+
+@media (prefers-reduced-motion: reduce) {
+  .mill.pop, .mill.crush .sail, .spin, .pill.in { animation: none; }
+  .pill.in { clip-path: none; }
+}
+
+/* ---------- home: what opens after sign-in ---------- */
+.center.leaving { opacity: 0; transition: opacity .9s ease; }
+.home { position: absolute; inset: 0; z-index: 2; }
+.home[hidden] { display: none; }
+
+/* the menu: built after the buttons are chosen */
+.menu { position: absolute; }
+
+.welcome {
+  position: absolute; left: 50%; top: 50%;
+  width: min(560px, 80vw); height: auto;
+  transform: translate(-50%, -50%);
+  overflow: visible;
+  transition: opacity 1.3s ease, filter 1.3s ease, transform 1.6s cubic-bezier(.2, 0, .1, 1);
+}
+.welcome text {
+  font-family: var(--serif);
+  font-size: 120px;
+  font-variation-settings: "opsz" 30;
+  fill: var(--blue);
+}
+.welcome.gone { opacity: 0; filter: blur(6px); transform: translate(-50%, calc(-50% - 10px)); }
+
+/* the dots: a small, quiet cluster in the middle */
+.cluster {
+  position: absolute; left: 50%; top: 50%;
+  width: min(360px, 70vw); height: auto;
+  transform: translate(-50%, -50%);
+  overflow: visible;
+  pointer-events: none;
+}
+.cluster g { animation: drift 160s linear infinite; transform-origin: 0 0; }
+.cluster circle {
+  fill: var(--blue);
+  opacity: 0;
+  transition: opacity 1.2s ease;
+}
+.cluster circle.on { opacity: var(--o); animation: breathe var(--d) ease-in-out var(--delay) infinite; }
+@keyframes drift   { to { transform: rotate(360deg); } }
+@keyframes breathe { 0%, 100% { opacity: var(--o); } 50% { opacity: calc(var(--o) * .35); } }
+@media (prefers-reduced-motion: reduce) {
+  .cluster g, .cluster circle.on { animation: none; }
+}
+</style>
+</head>
+<body>
+
+<main class="center">
+  <svg class="word" id="word" viewBox="0 0 1000 300" role="img" aria-label="Windmill">
+    <defs><clipPath id="reveal"></clipPath></defs>
+    <text id="text" x="500" y="200" text-anchor="middle" clip-path="url(#reveal)">W&#305;ndm&#305;ll</text>
+    <g id="dots"></g>
+  </svg>
+
+  <div class="cta-slot" id="slot">
+    <button class="pill" id="signin" type="button">
+      <svg class="gh" viewBox="0 0 16 16" aria-hidden="true"><path fill="currentColor" d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0 0 16 8c0-4.42-3.58-8-8-8z"/></svg>
+      <span class="label">Sign in with GitHub</span>
+      <svg class="ring" viewBox="0 0 54 54" aria-hidden="true">
+        <circle class="track" cx="27" cy="27" r="21"/>
+        <circle class="arc" cx="27" cy="27" r="21"/>
+        <circle class="full" cx="27" cy="27" r="21"/>
+        <path class="check" d="M19.6 27.6 L24.6 32.4 L34.6 21.8"/>
+      </svg>
+    </button>
+  </div>
+</main>
+
+<section class="home" id="home" hidden aria-label="Windmill">
+  <nav class="menu" id="menu" aria-label="Main"></nav>
+  <svg class="welcome" id="welcome" viewBox="0 0 700 200" role="img" aria-label="Welcome">
+    <defs><clipPath id="wclip"></clipPath></defs>
+    <text id="wtext" x="350" y="140" text-anchor="middle" clip-path="url(#wclip)">Welcome</text>
+  </svg>
+  <svg class="cluster" id="cluster" viewBox="-180 -180 360 360" aria-hidden="true"><g id="clusterG"></g></svg>
+</section>
+
+<div class="holo" id="holo" aria-hidden="true"><canvas id="holoCanvas"></canvas></div>
+
+<script>
+(() => {
+  const NS = "http://www.w3.org/2000/svg";
+  const $ = id => document.getElementById(id);
+  const text = $("text"), clip = $("reveal"), dotsG = $("dots"),
+        pill = $("signin"), holo = $("holo");
+  const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const FONT_PX = 200;
+  const BLADE = "50,52 29,9 64,1 60,47";   // one sail of the Windmill mark, in a 100x100 box
+
+  // How each letter is revealed: direction and chunk boundaries.
+  const PLAN = [
+    ["lr", [.22, .46, .7, 1]], ["bt", [.55, 1]], ["lr", [.38, .7, 1]], ["lr", [.45, .72, 1]],
+    ["lr", [.3, .52, .76, 1]], ["bt", [.55, 1]], ["tb", [.5, 1]], ["tb", [.5, 1]],
+  ];
+  const LETTER_GAP = 95, CHUNK = 60, DOTLESS = [1, 5];
+
+  let rects = [], boxes = [], dots = [], timers = [], tittle = null;
+  const later = (fn, ms) => timers.push(setTimeout(fn, ms));
+
+  // Piazzolla's real i dot, found by diffing "i" against the dotless "ı".
+  function measureTittle() {
+    const S = 400, c = document.createElement("canvas"); c.width = c.height = S;
+    const x = c.getContext("2d", { willReadFrequently: true });
+    const draw = ch => {
+      x.clearRect(0, 0, S, S);
+      x.font = `400 ${FONT_PX}px Piazzolla`; x.fillStyle = "#000";
+      x.fillText(ch, 100, 300);
+      return x.getImageData(0, 0, S, S).data;
+    };
+    const a = draw("i"), b = draw("ı");
+    let n = 0, sx = 0, sy = 0, sxx = 0, syy = 0, sxy = 0, minX = S, maxX = 0, minY = S, maxY = 0;
+    for (let y = 0; y < S; y++) for (let X = 0; X < S; X++) {
+      const k = (y * S + X) * 4 + 3;
+      if (a[k] > 128 && b[k] < 40) {
+        n++; sx += X; sy += y; sxx += X * X; syy += y * y; sxy += X * y;
+        minX = Math.min(minX, X); maxX = Math.max(maxX, X); minY = Math.min(minY, y); maxY = Math.max(maxY, y);
+      }
+    }
+    if (n < 20) return null;
+    const cx = sx / n, cy = sy / n;
+    const vxx = sxx / n - cx * cx, vyy = syy / n - cy * cy, vxy = sxy / n - cx * cy;
+    const h = Math.sqrt(((vxx - vyy) / 2) ** 2 + vxy * vxy);
+    return {
+      dx: cx - 100, dy: cy - 300,
+      rx: Math.sqrt((vxx + vyy) / 2 + h) * 2, ry: Math.sqrt(Math.max((vxx + vyy) / 2 - h, 1)) * 2,
+      deg: 0.5 * Math.atan2(2 * vxy, vxx - vyy) * 180 / Math.PI,
+      size: Math.max(maxX - minX, maxY - minY),
+    };
+  }
+
+  function build() {
+    clip.innerHTML = ""; dotsG.innerHTML = ""; rects = []; boxes = []; dots = [];
+    for (let i = 0; i < text.getNumberOfChars(); i++) {
+      const e = text.getExtentOfChar(i);
+      const b = { x: e.x - 4, y: e.y - 6, w: e.width + 8, h: e.height + 12 };
+      boxes.push(b);
+      const r = document.createElementNS(NS, "rect");
+      r.setAttribute("x", b.x); r.setAttribute("y", b.y); r.setAttribute("width", 0); r.setAttribute("height", 0);
+      clip.appendChild(r); rects.push(r);
+    }
+    if (!tittle) return;
+    DOTLESS.forEach((ci, n) => {
+      const p = text.getStartPositionOfChar(ci);
+      const g = document.createElementNS(NS, "g");
+      g.setAttribute("transform", `translate(${(p.x + tittle.dx).toFixed(2)} ${(p.y + tittle.dy).toFixed(2)})`);
+      const dw = document.createElementNS(NS, "g");
+      dw.setAttribute("transform", `rotate(${tittle.deg.toFixed(1)})`);
+      const dot = document.createElementNS(NS, "ellipse");
+      dot.setAttribute("class", "tittle dot");
+      dot.setAttribute("rx", tittle.rx.toFixed(2)); dot.setAttribute("ry", tittle.ry.toFixed(2));
+      dw.appendChild(dot); g.appendChild(dw);
+      let mill = null, spinner = null;
+      if (n === 0) {
+        const s = (tittle.size * 3.0) / 100;
+        mill = document.createElementNS(NS, "g"); mill.setAttribute("class", "mill");
+        mill.style.translate = `0px ${(-tittle.size * 0.6).toFixed(2)}px`;
+        const scaler = document.createElementNS(NS, "g");
+        scaler.setAttribute("transform", `scale(${s.toFixed(3)}) translate(-50 -50)`);
+        spinner = document.createElementNS(NS, "g");
+        spinner.innerHTML =
+          [0, 90, 180, 270].map(a => `<g transform="rotate(${a} 50 50)"><polygon class="sail" points="${BLADE}"/></g>`).join("") +
+          `<circle class="core" cx="50" cy="50" r="${(Math.max(tittle.rx, tittle.ry) / s).toFixed(2)}"/>`;
+        spinner.style.transformOrigin = "50px 50px";
+        scaler.appendChild(spinner); mill.appendChild(scaler); g.appendChild(mill);
+      }
+      dotsG.appendChild(g);
+      dots.push({ dot, mill, spinner });
+    });
+  }
+
+  function setChunk(i, f) {
+    const dir = (PLAN[i] || ["lr"])[0], b = boxes[i], r = rects[i];
+    if (dir === "lr") { r.setAttribute("x", b.x); r.setAttribute("y", b.y); r.setAttribute("width", b.w * f); r.setAttribute("height", b.h); }
+    if (dir === "bt") { r.setAttribute("x", b.x); r.setAttribute("y", b.y + b.h * (1 - f)); r.setAttribute("width", b.w); r.setAttribute("height", b.h * f); }
+    if (dir === "tb") { r.setAttribute("x", b.x); r.setAttribute("y", b.y); r.setAttribute("width", b.w); r.setAttribute("height", b.h * f); }
+  }
+
+  // ---------- the intro ----------
+  function play() {
+    timers.forEach(clearTimeout); timers = [];
+    pill.classList.remove("in", "done");
+    build();
+
+    later(() => {
+      if (reduce) {
+        boxes.forEach((_, i) => setChunk(i, 1));
+        dots.forEach(d => d.dot.classList.add("on"));
+        return outro(200);
+      }
+      let end = 0;
+      PLAN.forEach(([, steps], i) => steps.forEach((f, k) => {
+        const at = i * LETTER_GAP + k * CHUNK;
+        end = Math.max(end, at);
+        later(() => setChunk(i, f), at);
+      }));
+
+      const tDots = end + 160;
+      dots.forEach((d, n) => later(() => d.dot.classList.add("on"), tDots + n * 70));
+
+      const first = dots[0];
+      if (!first || !first.mill) return outro(tDots + 400);
+      const tMill = tDots + 650;
+      later(() => { first.dot.classList.remove("on"); first.mill.classList.add("pop"); }, tMill);
+      later(() => { first.spinner.classList.add("spin"); }, tMill + 260);
+      const tBack = tMill + 260 + 3 * 300 + 120;
+      later(() => { first.spinner.classList.remove("spin"); first.mill.classList.add("crush"); }, tBack);
+      later(() => { first.mill.classList.remove("pop", "crush"); first.dot.classList.add("on"); }, tBack + 180);
+      outro(tBack + 180);
+    }, 1000);
+  }
+
+  function outro(at) {
+    later(() => {
+      pill.classList.add("in");
+      later(() => pill.classList.add("done"), 220);
+    }, at + 280);
+    later(() => startHologram(), at + 620);
+  }
+
+  // ---------- sign in ----------
+  // The app shell listens for "windmill:signin" to start the GitHub flow, then dispatches
+  // "windmill:signin-success" when it worked, or "windmill:signin-reset" if it failed or was cancelled.
+  // When the page finishes its exit, it dispatches "windmill:ready".
+  const slot = $("slot");
+  let fullWidth = 0;
+  pill.addEventListener("click", () => {
+    if (pill.classList.contains("loading")) return;
+    fullWidth = pill.offsetWidth;
+    pill.style.width = fullWidth + "px";
+    void pill.offsetWidth;
+    pill.classList.add("loading");
+    pill.style.width = "54px";
+    pill.setAttribute("aria-busy", "true");
+    pill.setAttribute("aria-label", "Signing in with GitHub");
+    window.dispatchEvent(new CustomEvent("windmill:signin"));
+    // Preview only: outside the desktop app there is nobody to answer, so pretend it worked.
+    if (!(window.__TAURI__ || window.__TAURI_INTERNALS__ || window.electron))
+      setTimeout(() => window.dispatchEvent(new CustomEvent("windmill:signin-success")), 2600);
+  });
+
+  window.addEventListener("windmill:signin-reset", () => {
+    pill.classList.remove("loading", "done-ok");
+    pill.removeAttribute("aria-busy"); pill.removeAttribute("aria-label");
+    pill.style.width = fullWidth + "px";
+    setTimeout(() => { pill.style.width = ""; }, 220);
+  });
+
+  window.addEventListener("windmill:signin-success", () => {
+    if (!pill.classList.contains("loading") || pill.classList.contains("done-ok")) return;
+    pill.removeAttribute("aria-busy");
+    pill.setAttribute("aria-label", "Signed in");
+    pill.classList.add("done-ok");                      // ring closes, check draws
+    if (holoApi.collapse) holoApi.collapse();           // the field folds away under it
+    const quick = reduce ? 0.2 : 1;
+    setTimeout(() => pill.classList.add("closing"), 1500 * quick);   // the dot closes
+    setTimeout(() => slot.classList.add("gone"), 1850 * quick);      // the name drifts to the centre
+    setTimeout(() => window.dispatchEvent(new CustomEvent("windmill:ready")), 2900 * quick);
+  });
+
+  // ---------- hologram (three.js): a wireframe field across the bottom, with a pole windmill on it ----------
+  let holoStarted = false;
+  const holoApi = {};
+  function startHologram() {
+    if (holoStarted || !window.THREE) return;
+    holoStarted = true;
+    const T = THREE, BLUE = 0x0141FD;
+    const canvas = $("holoCanvas");
+    const renderer = new T.WebGLRenderer({ canvas, alpha: true, antialias: true });
+    renderer.setPixelRatio(Math.min(devicePixelRatio || 1, 2));
+    const scene = new T.Scene();
+    scene.fog = new T.Fog(0xffffff, 7, 21);
+    const camera = new T.PerspectiveCamera(28, 1, 0.1, 60);
+    camera.position.set(0, 1.45, 7);
+    camera.lookAt(0, 0.95, 0);
+    const render = () => renderer.render(scene, camera);
+
+    const lineMat = (opacity, fog = true) => new T.LineBasicMaterial({ color: BLUE, transparent: true, opacity, fog });
+    const fillMat = opacity => new T.MeshBasicMaterial({ color: BLUE, transparent: true, opacity, depthWrite: false, side: T.DoubleSide, fog: false });
+    const ground = (x, z) => 0.12 * Math.sin(x * 0.55 + 0.7) + 0.08 * Math.cos(z * 0.9 + x * 0.3) - 0.05;
+    const toGeo = list => {
+      const arr = new Float32Array(list.length * 6);
+      list.forEach((sg, i) => arr.set([...sg[0], ...sg[1]], i * 6));
+      const g = new T.BufferGeometry(); g.setAttribute("position", new T.BufferAttribute(arr, 3));
+      return g;
+    };
+
+    // where the windmill stands (moved with the window's shape in place())
+    const site = { x: -6, z: -1.6 };
+
+    // the field: one rolling grid under the whole window
+    const X0 = -24, X1 = 24, Z0 = -18, Z1 = 4.2, CELL = 0.6, SUB = 0.2;
+    let segs = [], fieldGeo = null, fieldLines = null;
+    function buildField() {
+      segs = [];
+      const P = (x, z) => [x, ground(x, z), z];
+      for (let z = Z0; z <= Z1 + 1e-6; z += CELL)
+        for (let x = X0; x < X1 - 1e-6; x += SUB) segs.push([P(x, z), P(x + SUB, z), Math.hypot(x + SUB / 2 - site.x, z - site.z)]);
+      for (let x = X0; x <= X1 + 1e-6; x += CELL)
+        for (let z = Z0; z < Z1 - 1e-6; z += SUB) segs.push([P(x, z), P(x, z + SUB), Math.hypot(x - site.x, z + SUB / 2 - site.z)]);
+      segs.sort((a, b) => a[2] - b[2]);
+      if (fieldLines) { scene.remove(fieldLines); fieldGeo.dispose(); }
+      fieldGeo = toGeo(segs);
+      fieldLines = new T.LineSegments(fieldGeo, lineMat(0.5));
+      scene.add(fieldLines);
+    }
+
+    // the windmill: a slim tapered pole, a nacelle, the Windmill mark as the wheel, and a tail vane
+    const mill = new T.Group();
+    const pole = new T.Group();
+    const H = 2.1, RB = 0.075, RT = 0.034, SIDES = 6, RINGS = [0, 0.5, 1];
+    const poleSegs = [];
+    const rim = (t, i) => { const r = RB + (RT - RB) * t, a = i / SIDES * Math.PI * 2; return [Math.cos(a) * r, H * t, Math.sin(a) * r]; };
+    for (let i = 0; i < SIDES; i++) poleSegs.push([rim(0, i), rim(1, i)]);
+    RINGS.forEach(t => { for (let i = 0; i < SIDES; i++) poleSegs.push([rim(t, i), rim(t, (i + 1) % SIDES)]); });
+    pole.add(new T.LineSegments(toGeo(poleSegs), lineMat(0.95, false)));
+    const poleBody = new T.CylinderGeometry(RT, RB, H, SIDES, 1, true); poleBody.translate(0, H / 2, 0);
+    pole.add(new T.Mesh(poleBody, fillMat(0.14)));
+    mill.add(pole);
+
+    // footing rings on the ground
+    const circle = (r, n = 48) => { const pts = []; for (let i = 0; i <= n; i++) { const a = i / n * Math.PI * 2; pts.push(new T.Vector3(Math.cos(a) * r, 0, Math.sin(a) * r)); } return new T.BufferGeometry().setFromPoints(pts); };
+    const footing = new T.Group();
+    footing.add(new T.Line(circle(0.22), lineMat(0.9, false)), new T.Line(circle(0.42), lineMat(0.45, false)));
+    footing.position.y = 0.01;
+    mill.add(footing);
+
+    const head = new T.Group();
+    head.position.y = H + 0.02;
+    head.rotation.y = 0.32;
+    const nacelleGeo = new T.BoxGeometry(0.15, 0.15, 0.46);
+    head.add(new T.Mesh(nacelleGeo, fillMat(0.25)), new T.LineSegments(new T.EdgesGeometry(nacelleGeo), lineMat(1, false)));
+    const wheel = new T.Group();
+    wheel.position.z = 0.3;
+    const pts = BLADE.split(" ").map(p => p.split(",").map(Number)).map(([x, y]) => new T.Vector2((x - 50) / 50, -(y - 50) / 50));
+    const bladeGeo = new T.ExtrudeGeometry(new T.Shape(pts), { depth: 0.08, bevelEnabled: false });
+    bladeGeo.translate(0, 0, -0.04);
+    for (let k = 0; k < 4; k++) {
+      const b = new T.Group();
+      b.add(new T.Mesh(bladeGeo, fillMat(0.22)), new T.LineSegments(new T.EdgesGeometry(bladeGeo), lineMat(1, false)));
+      b.rotation.z = -k * Math.PI / 2;
+      wheel.add(b);
+    }
+    const coreGeo = new T.CylinderGeometry(0.17, 0.17, 0.12, 20); coreGeo.rotateX(Math.PI / 2);
+    wheel.add(new T.Mesh(coreGeo, fillMat(0.7)));
+    wheel.scale.setScalar(0.56);
+    const vane = new T.Shape([new T.Vector2(0, 0.02), new T.Vector2(0.62, 0.2), new T.Vector2(0.62, -0.22), new T.Vector2(0, -0.04)]);
+    const vaneGeo = new T.ShapeGeometry(vane); vaneGeo.rotateY(Math.PI / 2); vaneGeo.translate(0, 0, -0.24);
+    head.add(wheel, new T.Mesh(vaneGeo, fillMat(0.18)), new T.LineSegments(new T.EdgesGeometry(vaneGeo), lineMat(1, false)));
+    mill.add(head);
+    scene.add(mill);
+
+    // a ripple that runs out from the foot of the pole now and then
+    const pulseMat = lineMat(0, true); pulseMat.depthTest = false;
+    const pulse = new T.Line(circle(1, 96), pulseMat);
+    scene.add(pulse);
+
+    function place() {
+      const w = canvas.clientWidth || innerWidth, h = canvas.clientHeight || 260;
+      renderer.setSize(w, h, false);
+      camera.aspect = w / h; camera.updateProjectionMatrix();
+      const depth = camera.position.z - site.z;
+      const halfW = Math.tan(T.MathUtils.degToRad(camera.fov / 2)) * depth * camera.aspect;
+      site.x = -halfW * (w < 700 ? 0.62 : 0.7);
+      mill.position.set(site.x, ground(site.x, site.z), site.z);
+      pulse.position.set(site.x, ground(site.x, site.z) + 0.02, site.z);
+      buildField();
+    }
+    place();
+    holo.classList.add("in");
+
+    const showAll = () => { fieldGeo.setDrawRange(0, segs.length * 2); pole.scale.y = 1; head.scale.setScalar(1); footing.scale.setScalar(1); };
+    let built = false;
+    let collapsed = false, spinTimer = 0, rippleTimer = 0;
+    addEventListener("resize", () => { if (collapsed) return; place(); if (built) showAll(); render(); });
+
+    if (reduce) { built = true; showAll(); return render(); }
+
+    // build-up, all in hard steps: the field spreads from the pole, the pole shoots up, the head pops on
+    fieldGeo.setDrawRange(0, 0); pole.scale.y = 0; head.scale.setScalar(0); footing.scale.setScalar(0);
+    const FIELD_STEPS = 7;
+    for (let k = 1; k <= FIELD_STEPS; k++)
+      setTimeout(() => { fieldGeo.setDrawRange(0, Math.round(segs.length * 2 * (k / FIELD_STEPS) ** 2)); render(); }, k * 60);
+    const tPole = 200;
+    [[0.6, 1], [1.25, 1], [0.92, 1]].forEach(([f], i) => setTimeout(() => { footing.scale.setScalar(f === 0.6 ? 0.6 : f > 1 ? 1.2 : 1); render(); }, tPole + i * 45));
+    [0.3, 0.62, 1.06, 1].forEach((sy, i) => setTimeout(() => { pole.scale.y = sy; render(); }, tPole + 90 + i * 55));
+    const tHead = tPole + 90 + 4 * 55 + 30;
+    [1.28, 0.9, 1].forEach((sc, i) => setTimeout(() => { head.scale.setScalar(sc); render(); }, tHead + i * 50));
+    setTimeout(() => { built = true; showAll(); render(); }, tHead + 160);
+
+        // a smooth, steady turn
+    setTimeout(() => {
+      let last = performance.now();
+      const turn = now => {
+        if (collapsed) return;
+        wheel.rotation.z += Math.min(0.05, (now - last) / 1000) * 1.1;
+        last = now;
+        render();
+        requestAnimationFrame(turn);
+      };
+      requestAnimationFrame(turn);
+    }, tHead + 160);
+
+    const ripple = () => {
+      [0.5, 1.2, 2.1, 3.2, 4.5, 6].forEach((r, i) => setTimeout(() => {
+        pulse.scale.setScalar(r); pulseMat.opacity = 0.75 * (1 - i / 6); render();
+      }, i * 80));
+      setTimeout(() => { pulseMat.opacity = 0; render(); }, 6 * 80);
+    };
+    setTimeout(() => { if (!collapsed) { ripple(); rippleTimer = setInterval(ripple, 3800); } }, tHead + 700);
+    render();
+
+    // After sign-in: the field draws back into the windmill, then the windmill sinks into the ground. Smooth, unhurried.
+    holoApi.collapse = () => {
+      if (collapsed) return;
+      collapsed = true;
+      clearInterval(spinTimer); clearInterval(rippleTimer);
+      pulseMat.opacity = 0;
+      const total = segs.length * 2, D = reduce ? 1 : 2000, t0 = performance.now();
+      const ease = t => t < .5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+      const frame = now => {
+        const p = Math.min(1, (now - t0) / D), e = ease(p);
+        fieldGeo.setDrawRange(0, Math.floor(total * (1 - e) / 2) * 2);
+        const m = ease(Math.max(0, (p - .3) / .7));
+        pole.scale.y = Math.max(1e-3, 1 - m);
+        head.position.y = (H + 0.02) * (1 - m);
+        head.scale.setScalar(Math.max(1e-3, 1 - m));
+        footing.scale.setScalar(Math.max(1e-3, 1 - m));
+        wheel.rotation.z += 0.012 * (1 - m);
+        render();
+        if (p < 1) requestAnimationFrame(frame); else holo.classList.remove("in");
+      };
+      requestAnimationFrame(frame);
+    };
+  }
+
+  // ---------- home: blank page, menu, a calm "Welcome", then the dots ----------
+  const home = $("home"), centerCol = document.querySelector(".center");
+  const wtext = $("wtext"), wclip = $("wclip"), welcome = $("welcome");
+
+  // Reveal any SVG <text> chunk by chunk through a clip path (same idea as the name).
+  function reveal(textEl, clipEl, plan, gap, chunk) {
+    clipEl.innerHTML = "";
+    const bxs = [], rs = [];
+    for (let i = 0; i < textEl.getNumberOfChars(); i++) {
+      const e = textEl.getExtentOfChar(i);
+      const b = { x: e.x - 3, y: e.y - 5, w: e.width + 6, h: e.height + 10 };
+      const r = document.createElementNS(NS, "rect");
+      r.setAttribute("x", b.x); r.setAttribute("y", b.y); r.setAttribute("width", 0); r.setAttribute("height", 0);
+      clipEl.appendChild(r); bxs.push(b); rs.push(r);
+    }
+    let end = 0;
+    plan.forEach(([dir, steps], i) => steps.forEach((f, k) => {
+      const at = reduce ? 0 : i * gap + k * chunk;
+      end = Math.max(end, at);
+      setTimeout(() => {
+        const b = bxs[i], r = rs[i];
+        if (dir === "lr") { r.setAttribute("x", b.x); r.setAttribute("y", b.y); r.setAttribute("width", b.w * f); r.setAttribute("height", b.h); }
+        if (dir === "bt") { r.setAttribute("x", b.x); r.setAttribute("y", b.y + b.h * (1 - f)); r.setAttribute("width", b.w); r.setAttribute("height", b.h * f); }
+        if (dir === "tb") { r.setAttribute("x", b.x); r.setAttribute("y", b.y); r.setAttribute("width", b.w); r.setAttribute("height", b.h * f); }
+      }, at);
+    }));
+    return end;
+  }
+
+  function buildMenu() {
+    // The menu is designed next; this is where it loads in.
+  }
+
+  function seedCluster() {
+    const g = $("clusterG"); g.innerHTML = "";
+    const N = 46, R = 150, GOLD = Math.PI * (3 - Math.sqrt(5));
+    const dots = [];
+    for (let i = 1; i <= N; i++) {
+      const r = R * Math.sqrt(i / N), a = i * GOLD;
+      const c = document.createElementNS(NS, "circle");
+      const jitter = 6 * Math.sin(i * 12.9898);
+      c.setAttribute("cx", ((r + jitter) * Math.cos(a)).toFixed(1));
+      c.setAttribute("cy", ((r + jitter) * Math.sin(a)).toFixed(1));
+      c.setAttribute("r", (1.2 + 2.4 * (1 - i / N) * (0.6 + 0.4 * Math.abs(Math.sin(i * 7.31)))).toFixed(2));
+      c.style.setProperty("--o", (0.25 + 0.6 * (1 - i / N)).toFixed(2));
+      c.style.setProperty("--d", (4 + (i % 5)) + "s");
+      c.style.setProperty("--delay", (-(i % 7) * 0.7) + "s");
+      g.appendChild(c); dots.push(c);
+    }
+    dots.forEach((c, i) => setTimeout(() => c.classList.add("on"), reduce ? 0 : i * 45));
+  }
+
+  window.addEventListener("windmill:ready", () => {
+    centerCol.classList.add("leaving");                 // the name fades, leaving a blank white page
+    setTimeout(() => {
+      centerCol.hidden = true;
+      home.hidden = false;
+      setTimeout(buildMenu, 500);                        // the buttons load
+      setTimeout(() => {                                 // a calm "Welcome", chunk by chunk
+        const end = reveal(wtext, wclip, [
+          ["lr", [.3, .6, 1]], ["lr", [.5, 1]], ["tb", [.5, 1]], ["lr", [.5, 1]],
+          ["lr", [.5, 1]], ["lr", [.35, .7, 1]], ["lr", [.5, 1]],
+        ], 150, 120);
+        setTimeout(() => {                               // it leaves softly
+          welcome.classList.add("gone");
+          setTimeout(seedCluster, 1100);                 // then the dots, so nothing overlaps
+        }, end + 1500);
+      }, 1100);
+    }, 1000);
+  });
+
+  // ---------- go ----------
+  Promise.race([
+    Promise.all([
+      document.fonts.load(`400 ${FONT_PX}px "Piazzolla"`, "Windmillı"),
+      document.fonts.load('600 16px "Inter"', "Sign in with GitHub"),
+    ]),
+    new Promise(r => setTimeout(r, 4000)),
+  ]).then(() => {
+    tittle = measureTittle();
+    if (!tittle) text.textContent = "Windmill";
+    play();
+  });
+
+  // Press R to replay while working on the intro.
+  addEventListener("keydown", e => { if (e.key === "r" || e.key === "R") location.reload(); });
+})();
+</script>
+</body>
+</html>
