@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256">
+  <!-- 1. Pinwheel: four sharp sails turning around a pivot -->
+  <g fill="#0141FD" transform="translate(128 128)">
+    <path id="s" d="M3 4 L-48 -101 L36 -122 L28 -6 Z"/>
+    <use href="#s" transform="rotate(90)"/>
+    <use href="#s" transform="rotate(180)"/>
+    <use href="#s" transform="rotate(270)"/>
+    <circle r="21"/>
+  </g>
+  <circle cx="128" cy="128" r="8" fill="#ffffff"/>
+</svg>
