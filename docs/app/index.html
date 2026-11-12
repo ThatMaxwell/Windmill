@@ -3,6 +3,14 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<script>
+// Inside the Android app, Windmill is an app, not a web page: no zooming, no desktop layout behind it.
+(function () {
+  if (!(window.__TAURI__ || window.__TAURI_INTERNALS__) || !/Android/i.test(navigator.userAgent)) return;
+  document.documentElement.classList.add("phone");
+  document.querySelector('meta[name="viewport"]').setAttribute("content", "width=device-width, initial-scale=1, minimum-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover");
+})();
+</script>
 <title>Windmill — Preview</title>
 <meta name="description" content="A preview of the Windmill desktop app.">
 <!-- For the shipped app, bundle these fonts and three.js locally instead of loading them from the web. -->
