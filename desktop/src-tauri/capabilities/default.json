@@ -9,6 +9,6 @@
     "core:window:allow-set-fullscreen",
     "core:window:allow-set-focus",
     "dialog:allow-open",
-    "opener:allow-open-url"
+    "opener:default"
   ]
 }
