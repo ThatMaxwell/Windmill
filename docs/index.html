@@ -45,18 +45,10 @@ svg.word { width: min(860px, 92vw); height: auto; overflow: visible; display: bl
   fill: var(--blue);
 }
 .core, .sail, .tittle { fill: var(--blue); }
-.dot, .mill { transform-box: fill-box; transform-origin: center; }
-.dot { transform: scale(0); }
-.dot.on { transform: scale(1); }
-.mill { transform: scale(0); }
-.mill.pop { animation: millpop .15s steps(3, jump-none) forwards; }
-.mill .sail { transform-box: view-box; transform-origin: 50px 50px; }
-.mill.crush { translate: 0px 0px !important; transition: translate .18s steps(3, jump-none); }
-.mill.crush .sail { animation: crush .18s steps(3, jump-none) forwards; }
-.spin { transform-box: view-box; animation: tick .3s steps(3, jump-end) 3; }
-@keyframes millpop { 0% { transform: scale(0) rotate(-40deg) } 60% { transform: scale(1.2) rotate(8deg) } 100% { transform: scale(1) rotate(0) } }
-@keyframes crush   { from { transform: scale(1) } to { transform: scale(0) } }
-@keyframes tick    { from { transform: rotate(0deg) } to { transform: rotate(-90deg) } }
+/* the i dots and the little windmill are moved with SVG transform attributes from script,
+   so they behave the same in every browser */
+.dot { visibility: hidden; }
+.dot.on { visibility: visible; }
 
 /* ---------- Sign in with GitHub ---------- */
 .cta-slot { position: relative; height: 60px; display: grid; place-items: center; }
@@ -163,7 +155,7 @@ svg.word { width: min(860px, 92vw); height: auto; overflow: visible; display: bl
 .holo.in { visibility: visible; }
 
 @media (prefers-reduced-motion: reduce) {
-  .mill.pop, .mill.crush .sail, .spin, .pill.in { animation: none; }
+  .pill.in { animation: none; }
   .pill.in { clip-path: none; }
 }
 
@@ -184,7 +176,7 @@ svg.word { width: min(860px, 92vw); height: auto; overflow: visible; display: bl
   position: relative;
   isolation: isolate;
   background:
-    linear-gradient(180deg, rgba(255,255,255,.62) 0%, rgba(255,255,255,.34) 100%);
+    linear-gradient(180deg, rgba(255,255,255,.80) 0%, rgba(243,245,250,.62) 100%);
   -webkit-backdrop-filter: blur(var(--blur)) saturate(185%) brightness(1.04);
   backdrop-filter: blur(var(--blur)) saturate(185%) brightness(1.04);
   box-shadow:
@@ -192,9 +184,9 @@ svg.word { width: min(860px, 92vw); height: auto; overflow: visible; display: bl
     inset 0 -1px 0 rgba(255,255,255,.4),
     inset 0 0 0 .5px rgba(255,255,255,.6),
     inset 0 -10px 18px -12px rgba(var(--blue-rgb), .10),
-    0 0 0 .5px rgba(20, 24, 40, .08),
-    0 2px 4px -1px rgba(20, 24, 40, .06),
-    0 12px 32px -12px rgba(20, 28, 60, .22);
+    0 0 0 1px rgba(20, 24, 40, .09),
+    0 2px 6px -1px rgba(20, 24, 40, .10),
+    0 14px 34px -12px rgba(20, 28, 60, .30);
 }
 .glass.lensed {
   -webkit-backdrop-filter: var(--lens) blur(var(--blur)) saturate(185%) brightness(1.04);
@@ -254,7 +246,7 @@ svg.word { width: min(860px, 92vw); height: auto; overflow: visible; display: bl
 }
 .bar.in .item { opacity: 1; scale: 1; }
 .item.icon { padding: 0; width: 36px; }
-.item svg { width: 19px; height: 19px; flex: none; overflow: visible; }
+.item svg { width: 20px; height: 20px; flex: none; overflow: visible; }
 .item .sub { color: var(--glass-sub); }
 .item:focus-visible { outline: 2px solid var(--blue); outline-offset: 1px; }
 /* the moving lens that slides under whatever you point at */
@@ -274,13 +266,385 @@ svg.word { width: min(860px, 92vw); height: auto; overflow: visible; display: bl
 .capsule.hot .bubble { opacity: 1; scale: 1; }
 
 /* line icons in the reference style: ink strokes, grey details */
-.ic { fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
-.ic .soft { stroke: #9aa0ab; }
-.ic .softfill { fill: #9aa0ab; stroke: none; }
+.ic { fill: none; stroke: currentColor; stroke-width: 1.9; stroke-linecap: round; stroke-linejoin: round; }
+.ic .soft { stroke: #8b919d; }
+.ic .softfill { fill: #8b919d; stroke: none; }
 .ic .fill { fill: currentColor; stroke: none; }
 
 /* ---------- press: Android-style ripple and squish ---------- */
 .item.press, .chevron.press { overflow: hidden; }
+.tile .rise { position: relative; overflow: hidden; border-radius: inherit; }
+.ripple {
+  position: absolute; border-radius: 50%; pointer-events: none; z-index: 0;
+  width: 10px; height: 10px; margin: -5px 0 0 -5px;
+  background: radial-gradient(circle, rgba(var(--blue-rgb), .22) 0%, rgba(var(--blue-rgb), .12) 55%, rgba(var(--blue-rgb), 0) 72%);
+  animation: ripple .62s cubic-bezier(.2, .7, .3, 1) forwards;
+}
+@keyframes ripple { from { transform: scale(0); opacity: 1; } 70% { opacity: .9; } to { transform: scale(var(--rs, 18)); opacity: 0; } }
+.press { transition: scale .55s var(--spring) !important; }
+.press.down { scale: .88 !important; transition: scale .12s ease-out !important; }
+
+/* ---------- tooltip ---------- */
+.tip {
+  position: fixed; z-index: 30; left: 0; top: 0;
+  height: 28px; padding: 0 11px;
+  display: flex; align-items: center;
+  border-radius: 999px;
+  font: 500 12px/1 var(--sans); color: var(--glass-ink); white-space: nowrap;
+  --blur: 14px;
+  opacity: 0; scale: .85;
+  transition: opacity .16s ease, scale .35s var(--spring);
+  pointer-events: none;
+}
+.tip.on { opacity: 1; scale: 1; }
+
+/* ---------- wallpaper ---------- */
+.wall { position: absolute; inset: 0; z-index: 0; }
+.wall i { position: absolute; inset: 0; opacity: 0; transition: opacity .9s ease; }
+.wall i.on { opacity: 1; }
+.wall [data-w="dots"], .wall [data-w="plain"] { background: #fff; }
+.wall [data-w="sky"], .wp-sky {
+  background:
+    radial-gradient(85% 85% at 12% 108%, rgba(1,65,253,.42), rgba(1,65,253,0) 62%),
+    radial-gradient(70% 80% at 96% -12%, rgba(80,140,255,.36), rgba(80,140,255,0) 60%),
+    linear-gradient(180deg, #e8f0ff, #ffffff 72%);
+}
+.wall [data-w="deep"], .wp-deep {
+  background:
+    radial-gradient(80% 60% at 50% 120%, rgba(90,132,255,.9), rgba(90,132,255,0) 70%),
+    radial-gradient(55% 60% at 0% 0%, rgba(255,255,255,.14), rgba(255,255,255,0) 60%),
+    linear-gradient(180deg, #072a66, #0B3A84 45%, #0141FD);
+}
+.cluster { transition: opacity .8s ease; }
+.home:not(.w-dots) .cluster { opacity: 0; }
+.home.w-deep .welcome text { fill: #fff; }
+
+/* ---------- cursors ---------- */
+html.cur-windmill, html.cur-windmill * {
+  cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='28' height='28' viewBox='0 0 28 28'%3E%3Cpath d='M5 3.5l16.5 8.2-7 1.9-3.3 6.9z' fill='%230141FD' stroke='white' stroke-width='1.8' stroke-linejoin='round'/%3E%3C/svg%3E") 5 3, auto !important;
+}
+html.cur-dot, html.cur-dot * {
+  cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24'%3E%3Ccircle cx='12' cy='12' r='6' fill='%230141FD' stroke='white' stroke-width='2.5'/%3E%3C/svg%3E") 12 12, auto !important;
+}
+
+/* ---------- top-bar items that are switched off in Settings ---------- */
+.item.gone { display: none; }
+
+/* ---------- windows ---------- */
+.win {
+  position: fixed; z-index: 40; left: 50%; top: 50%;
+  width: min(var(--ww, 720px), calc(100vw - 32px));
+  height: min(var(--wh, 460px), calc(100vh - 150px));
+  translate: -50% -50%;
+  border-radius: 26px;
+  --blur: 34px;
+  background: linear-gradient(180deg, rgba(255,255,255,.92), rgba(246,248,252,.84));
+  display: grid; grid-template-rows: auto minmax(0, 1fr);
+  overflow: hidden;
+  transform-origin: var(--ox, 50%) var(--oy, 50%);
+  opacity: 0; scale: .2; visibility: hidden; pointer-events: none;
+  transition: scale .34s cubic-bezier(.5, 0, .9, .45), opacity .2s ease .1s, visibility 0s linear .36s;
+}
+.win.open {
+  opacity: 1; scale: 1; visibility: visible; pointer-events: auto;
+  transition: scale .72s var(--spring-soft), opacity .16s ease, visibility 0s;
+}
+.win > header, .win > .wbody { position: relative; z-index: 4; }
+.whead { display: flex; align-items: center; gap: 10px; padding: 16px 16px 12px 22px; }
+.whead h2 {
+  margin: 0; font: 400 26px/1 var(--serif); font-variation-settings: "opsz" 26;
+  color: var(--glass-ink); letter-spacing: -.01em;
+}
+.wsub {
+  font: 600 10.5px/1 var(--sans); letter-spacing: .06em; text-transform: uppercase;
+  color: var(--blue); background: rgba(var(--blue-rgb), .08);
+  padding: 5px 8px; border-radius: 999px;
+}
+.x {
+  margin-left: auto; appearance: none; border: 0; cursor: pointer;
+  width: 32px; height: 32px; border-radius: 999px;
+  display: grid; place-items: center;
+  color: var(--glass-ink); background: rgba(20,24,40,.06);
+  transition: background .2s ease;
+}
+.x:hover { background: rgba(20,24,40,.11); }
+.x svg { width: 13px; height: 13px; }
+.x:focus-visible, .sec:focus-visible, .wcard:focus-visible, .ccard:focus-visible, .frow:focus-visible, .krow:focus-visible, .row:focus-visible, .ghostbtn:focus-visible {
+  outline: 2px solid var(--blue); outline-offset: 2px;
+}
+.wbody { min-height: 0; padding: 0 16px 16px; }
+.split { display: grid; grid-template-columns: 196px minmax(0, 1fr); gap: 14px; height: 100%; }
+#win-files .split { grid-template-columns: 256px minmax(0, 1fr); }
+.side {
+  display: flex; flex-direction: column; gap: 2px;
+  padding: 6px; border-radius: 18px;
+  background: rgba(20,24,40,.035);
+  overflow: auto;
+}
+.sec {
+  appearance: none; border: 0; background: none; cursor: pointer;
+  display: flex; align-items: center; gap: 10px;
+  height: 38px; padding: 0 12px; border-radius: 12px;
+  font: 500 13.5px/1 var(--sans); color: var(--glass-ink); text-align: left;
+  transition: background .2s ease, box-shadow .2s ease;
+}
+.sec:hover { background: rgba(20,24,40,.05); }
+.sec.on { background: #fff; box-shadow: 0 0 0 1px rgba(20,24,40,.06), 0 2px 6px -2px rgba(20,28,60,.2); }
+.sec svg { width: 18px; height: 18px; flex: none; }
+.pane { min-height: 0; overflow: auto; padding: 6px 6px 8px 4px; }
+.panel { display: none; }
+.panel.on { display: block; animation: panelIn .5s var(--spring-soft); }
+@keyframes panelIn { from { opacity: 0; translate: 0 8px; } to { opacity: 1; translate: 0 0; } }
+.panel h3 { margin: 4px 0 4px; font: 600 16px/1.2 var(--sans); color: var(--glass-ink); letter-spacing: -.01em; }
+.lead { margin: 0 0 16px; font: 400 13px/1.5 var(--sans); color: var(--glass-sub); max-width: 52ch; }
+
+/* wallpaper choices */
+.walls { display: grid; grid-template-columns: repeat(auto-fill, minmax(132px, 1fr)); gap: 14px; }
+.wcard, .ccard {
+  appearance: none; border: 0; background: none; cursor: pointer; padding: 0;
+  display: grid; gap: 8px;
+  font: 500 13px/1 var(--sans); color: var(--glass-ink); text-align: left;
+}
+.wprev {
+  display: block; aspect-ratio: 16 / 10; border-radius: 14px;
+  position: relative; overflow: hidden;
+  box-shadow: 0 0 0 1px rgba(20,24,40,.10), 0 4px 12px -6px rgba(20,28,60,.25);
+  transition: box-shadow .25s ease;
+}
+.wcard:hover .wprev { box-shadow: 0 0 0 1px rgba(20,24,40,.18), 0 6px 16px -6px rgba(20,28,60,.3); }
+.wcard.on .wprev, .ccard.on .cprev { box-shadow: 0 0 0 2px var(--blue), 0 0 0 6px rgba(var(--blue-rgb), .14); }
+.wp-dots, .wp-plain { background: #fff; }
+.wp-dots::after {
+  content: ""; position: absolute; inset: 16% 28%;
+  background: radial-gradient(circle, rgba(1,65,253,.8) 1.1px, transparent 1.6px) 0 0 / 9px 9px;
+  -webkit-mask: radial-gradient(closest-side, #000 35%, transparent);
+  mask: radial-gradient(closest-side, #000 35%, transparent);
+}
+
+/* cursor choices */
+.curs { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
+.cprev {
+  display: grid; place-items: center; height: 92px; border-radius: 14px; background: #fff;
+  box-shadow: 0 0 0 1px rgba(20,24,40,.10), 0 4px 12px -6px rgba(20,28,60,.25);
+  transition: box-shadow .25s ease;
+}
+.cprev svg { width: 30px; height: 30px; }
+
+/* switches */
+.rows { display: grid; background: #fff; border-radius: 16px; padding: 2px 8px; box-shadow: 0 0 0 1px rgba(20,24,40,.06); }
+.srow { display: flex; align-items: center; justify-content: space-between; gap: 12px; height: 48px; padding: 0 4px 0 6px; font: 500 13.5px/1 var(--sans); color: var(--glass-ink); }
+.srow + .srow { border-top: 1px solid rgba(20,24,40,.06); }
+.srow .lbl { display: flex; align-items: center; gap: 11px; }
+.srow .lbl svg { width: 19px; height: 19px; }
+.sw {
+  appearance: none; border: 0; cursor: pointer; padding: 0; flex: none;
+  position: relative; width: 46px; height: 28px; border-radius: 999px;
+  background: #dcdfe6; transition: background .25s ease;
+}
+.sw[aria-checked="true"] { background: var(--blue); }
+.sw i {
+  position: absolute; top: 3px; left: 3px; width: 22px; height: 22px; border-radius: 999px;
+  background: #fff; box-shadow: 0 1px 2px rgba(0,0,0,.14), 0 3px 8px -2px rgba(0,0,0,.25);
+  transition: translate .5s var(--spring), width .25s var(--spring);
+}
+.sw[aria-checked="true"] i { translate: 18px 0; }
+.sw:active i { width: 28px; }
+.sw[aria-checked="true"]:active i { translate: 12px 0; }
+.sw:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; }
+
+/* about */
+.about { display: grid; justify-items: start; gap: 10px; padding-top: 6px; }
+.about svg { width: 54px; height: 54px; }
+.about .name { font: 400 44px/1 var(--serif); font-variation-settings: "opsz" 30; color: var(--blue); letter-spacing: -.01em; }
+.about p { margin: 0; font: 400 13.5px/1.5 var(--sans); color: var(--glass-sub); max-width: 46ch; }
+.about .meta { font: 500 11px/1 var(--sans); letter-spacing: .06em; text-transform: uppercase; color: var(--glass-sub); }
+
+/* ---------- files ---------- */
+.tree { padding: 10px 6px; }
+.tlabel { font: 500 12.5px/1 var(--sans); color: var(--glass-sub); padding: 6px 10px 10px; }
+.frow, .krow {
+  appearance: none; border: 0; background: none; cursor: pointer; width: 100%;
+  display: flex; align-items: center; gap: 9px;
+  height: 36px; padding: 0 10px; border-radius: 10px;
+  font: 500 13.5px/1 var(--sans); color: var(--glass-ink); text-align: left;
+  transition: background .15s ease;
+}
+.frow:hover, .krow:hover { background: rgba(20,24,40,.05); }
+.krow.on { background: rgba(20,24,40,.08); }
+.frow em { margin-left: auto; font-style: normal; font-weight: 400; color: var(--glass-sub); font-variant-numeric: tabular-nums; }
+.frow .chev { width: 12px; height: 12px; flex: none; color: var(--glass-sub); transition: rotate .4s var(--spring); }
+.fold.open > .frow .chev { rotate: 90deg; }
+.frow .fic, .krow svg { width: 19px; height: 19px; flex: none; }
+.kids { display: grid; grid-template-rows: 0fr; transition: grid-template-rows .45s cubic-bezier(.3, .7, .2, 1); }
+.fold.open > .kids { grid-template-rows: 1fr; }
+.kin { overflow: hidden; padding-left: 22px; }
+.preview {
+  display: grid; place-items: center; align-content: center; gap: 10px;
+  background: #fff; border-radius: 18px; box-shadow: 0 0 0 1px rgba(20,24,40,.06);
+  text-align: center; padding: 20px;
+}
+.preview .fbig svg { width: 76px; height: 76px; }
+.preview .fbig { animation: panelIn .5s var(--spring-soft); }
+.preview .fname { font: 600 15px/1.2 var(--sans); color: var(--glass-ink); }
+.preview .fmeta { font: 400 12.5px/1.2 var(--sans); color: var(--glass-sub); }
+
+/* ---------- widgets ---------- */
+.grid4 { display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr; gap: 12px; height: 100%; }
+.card {
+  background: #fff; border-radius: 20px; padding: 16px 18px;
+  box-shadow: 0 0 0 1px rgba(20,24,40,.06), 0 4px 14px -8px rgba(20,28,60,.25);
+  display: flex; flex-direction: column; gap: 6px; min-height: 0; overflow: hidden;
+}
+.win.open .card { animation: cardIn .7s var(--spring-soft) both; animation-delay: calc(var(--i) * 60ms + 120ms); }
+@keyframes cardIn { from { opacity: 0; scale: .92; translate: 0 10px; } to { opacity: 1; scale: 1; translate: 0 0; } }
+.card .big { font: 400 40px/1 var(--serif); font-variation-settings: "opsz" 30; color: var(--glass-ink); letter-spacing: -.01em; font-variant-numeric: tabular-nums; }
+.card .small { font: 500 12.5px/1.35 var(--sans); color: var(--glass-sub); }
+.card .ttl { font: 600 11px/1 var(--sans); letter-spacing: .06em; text-transform: uppercase; color: var(--glass-sub); }
+.w-clock .big { color: var(--blue); margin-top: auto; }
+.w-wx .big { margin-top: auto; }
+.w-wx .wxi svg { width: 28px; height: 28px; }
+.cal { display: grid; grid-template-columns: repeat(7, 1fr); gap: 1px 2px; font: 500 10.5px/1 var(--sans); color: var(--glass-ink); text-align: center; margin-top: 2px; }
+.cal span { height: 18px; display: grid; place-items: center; border-radius: 999px; font-variant-numeric: tabular-nums; }
+.cal .h { color: var(--glass-sub); font-weight: 600; font-size: 9.5px; }
+.cal .t { background: var(--blue); color: #fff; }
+.cal .m { visibility: hidden; }
+.batbar { height: 10px; border-radius: 999px; background: rgba(20,24,40,.08); overflow: hidden; margin-top: auto; }
+.batbar i { display: block; height: 100%; width: 0; background: var(--blue); border-radius: inherit; transition: width .9s var(--spring-soft); }
+
+/* ---------- phone ---------- */
+.phone { display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: minmax(0, 1fr) auto; gap: 14px 18px; height: 100%; }
+.code {
+  background: #fff; border-radius: 20px; box-shadow: 0 0 0 1px rgba(20,24,40,.06), 0 4px 14px -8px rgba(20,28,60,.25);
+  display: grid; place-items: center; align-content: center; gap: 12px; padding: 18px;
+}
+.digits { font: 500 34px/1 ui-monospace, "SF Mono", "Cascadia Mono", Menlo, monospace; letter-spacing: .06em; color: var(--blue); font-variant-numeric: tabular-nums; transition: opacity .2s ease; }
+.digits.swap { opacity: 0; }
+.ghostbtn {
+  appearance: none; border: 0; cursor: pointer;
+  height: 32px; padding: 0 14px; border-radius: 999px;
+  background: rgba(var(--blue-rgb), .09); color: var(--blue);
+  font: 600 12.5px/1 var(--sans);
+  transition: background .2s ease;
+}
+.ghostbtn:hover { background: rgba(var(--blue-rgb), .15); }
+.steps { margin: 0; padding: 8px 0 0 20px; display: grid; align-content: start; gap: 14px; font: 400 13.5px/1.45 var(--sans); color: var(--glass-ink); }
+.steps li::marker { color: var(--blue); font-weight: 600; }
+.note { grid-column: 1 / -1; margin: 0; font: 400 12.5px/1.45 var(--sans); color: var(--glass-sub); }
+
+/* ---------- Windmill Search ---------- */
+.scrim {
+  position: fixed; inset: 0; z-index: 44;
+  background: rgba(236, 240, 250, .32);
+  -webkit-backdrop-filter: blur(3px); backdrop-filter: blur(3px);
+  opacity: 0; pointer-events: none; transition: opacity .25s ease;
+}
+.scrim.on { opacity: 1; pointer-events: auto; }
+.search {
+  position: fixed; z-index: 45; left: 50%; top: 15vh;
+  width: min(640px, calc(100vw - 32px));
+  border-radius: 24px;
+  --blur: 34px;
+  background: linear-gradient(180deg, rgba(255,255,255,.94), rgba(247,248,252,.86));
+  display: grid;
+  transform-origin: 50% 0;
+  opacity: 0; scale: .96; translate: -50% -10px; visibility: hidden; pointer-events: none;
+  transition: opacity .15s ease, scale .25s cubic-bezier(.4, 0, 1, 1), translate .25s cubic-bezier(.4, 0, 1, 1), visibility 0s linear .25s;
+}
+.search.on {
+  opacity: 1; scale: 1; translate: -50% 0; visibility: visible; pointer-events: auto;
+  transition: opacity .16s ease, scale .6s var(--spring-soft), translate .6s var(--spring-soft), visibility 0s;
+}
+.search > * { position: relative; z-index: 4; }
+.sbar { display: flex; align-items: center; gap: 12px; height: 62px; padding: 0 18px 0 20px; cursor: text; }
+.sbar svg { width: 21px; height: 21px; color: var(--glass-sub); flex: none; }
+.sbar input {
+  flex: 1; min-width: 0; border: 0; outline: 0; background: none;
+  font: 400 18px/1 var(--sans); color: var(--glass-ink); letter-spacing: -.01em;
+}
+.sbar input::placeholder { color: #9095a1; }
+.search kbd {
+  font: 500 11px/1 var(--sans); padding: 4px 6px; border-radius: 6px;
+  background: rgba(20,24,40,.06); color: var(--glass-sub);
+}
+.sres { max-height: min(380px, 52vh); overflow: auto; padding: 6px 8px 8px; border-top: 1px solid rgba(20,24,40,.07); }
+.sgroup { font: 600 11px/1 var(--sans); letter-spacing: .06em; text-transform: uppercase; color: var(--glass-sub); padding: 12px 10px 6px; }
+.row {
+  appearance: none; border: 0; background: none; cursor: pointer; width: 100%;
+  display: flex; align-items: center; gap: 12px;
+  height: 46px; padding: 0 10px; border-radius: 12px;
+  font: 500 14px/1 var(--sans); color: var(--glass-ink); text-align: left;
+}
+.row.on { background: rgba(var(--blue-rgb), .09); }
+.row .ri { width: 30px; height: 30px; display: grid; place-items: center; flex: none; }
+.row .ri > svg { width: 30px; height: 30px; }
+.row .ri .ic { width: 20px; height: 20px; }
+.row .ri .wprev { width: 26px; height: 26px; aspect-ratio: auto; border-radius: 8px; }
+.row .ri .wprev::after { inset: 12%; background-size: 5px 5px; }
+.row .rg { margin-left: auto; font: 400 12.5px/1 var(--sans); color: var(--glass-sub); }
+.row.on .rg { color: var(--blue); }
+.sempty { padding: 28px 12px; text-align: center; font: 400 13.5px/1.4 var(--sans); color: var(--glass-sub); }
+.sfoot { display: flex; align-items: center; gap: 18px; padding: 11px 18px; border-top: 1px solid rgba(20,24,40,.07); font: 400 12px/1 var(--sans); color: var(--glass-sub); }
+.sfoot span { display: inline-flex; align-items: center; gap: 4px; }
+.sfoot .sfoot-r { margin-left: auto; }
+@media (max-width: 640px) { .sfoot { display: none; } .phone, .grid4 { grid-template-columns: 1fr; grid-template-rows: none; height: auto; } .curs { grid-template-columns: 1fr 1fr; } }
+@media (prefers-reduced-motion: reduce) {
+  .win, .search, .scrim, .wall i, .kids, .sw i { transition: none !important; }
+  .panel.on, .win.open .card, .preview .fbig { animation: none; }
+}
+
+/* ---------- the apps button and the dock ---------- */
+.dockwrap {
+  position: absolute; left: 0; right: 0;
+  bottom: max(14px, env(safe-area-inset-bottom, 0px));
+  display: grid; justify-items: center; gap: 10px;
+  pointer-events: none;
+}
+.chevron {
+  appearance: none; border: 0; cursor: pointer;
+  width: 120px; height: 34px; border-radius: 999px;
+  display: grid; place-items: center;
+  color: var(--glass-ink);
+  pointer-events: auto;
+  --blur: 14px;
+  opacity: 0; translate: 0 22px;
+  transition: opacity .4s ease .25s, translate .8s var(--spring) .25s;
+  -webkit-tap-highlight-color: transparent;
+}
+.chevron.in { opacity: 1; translate: 0 0; }
+.chevron svg { width: 48px; height: 13px; position: relative; z-index: 4; overflow: visible; transition: scale .42s cubic-bezier(.3, .7, .2, 1), translate .35s cubic-bezier(.3, .7, .2, 1); }
+.chevron:hover svg { translate: 0 -1.5px; }
+.chevron[aria-expanded="true"] svg { scale: 1 -1; }
+.chevron[aria-expanded="true"]:hover svg { translate: 0 1.5px; }
+.chevron:focus-visible { outline: 2px solid var(--blue); outline-offset: 3px; }
+
+.dock {
+  display: flex; align-items: flex-end; gap: 8px;
+  padding: 10px 12px;
+  border-radius: 28px;
+  --blur: 22px;
+  transform-origin: 50% 100%;
+  opacity: 0; translate: 0 28px; scale: .82;
+  visibility: hidden;
+  transition: opacity .2s ease, translate .4s cubic-bezier(.5, 0, .75, 0), scale .4s cubic-bezier(.5, 0, .75, 0), visibility 0s linear .4s;
+}
+.dock.open {
+  opacity: 1; translate: 0 0; scale: 1; visibility: visible; pointer-events: auto;
+  transition: opacity .22s ease, translate .7s var(--spring-soft), scale .7s var(--spring-soft), visibility 0s;
+}
+.dock .sep { width: 1px; align-self: stretch; margin: 6px 2px; background: linear-gradient(rgba(20,24,40,0), rgba(20,24,40,.14), rgba(20,24,40,0)); position: relative; z-index: 4; }
+.tile {
+  --mag: 1;
+  position: relative; z-index: 4;
+  appearance: none; border: 0; padding: 0; cursor: pointer; background: none;
+  width: calc(54px * var(--mag)); height: calc(54px * var(--mag));
+  border-radius: calc(14px * var(--mag));
+  display: grid; place-items: center;
+  transition: width .2s cubic-bezier(.2,.8,.2,1), height .2s cubic-bezier(.2,.8,.2,1), border-radius .2s;
+  -webkit-tap-highlight-color: transparent;
+}
+.tile svg { width: 100%; height: 100%; display: block; overflow: visible; }
+.tile .rise { filter: drop-shadow(0 1px 1px rgba(20,24,40,.12)) drop-shadow(0 5px 8px rgba(20,28,60,.18)); }
+.tile:focus-visible { outline: 2px solid var(--blue); outline-offset: 3px; }
 .tile .rise { position: relative; overflow: hidden; border-radius: inherit; }
 .ripple {
   position: absolute; border-radius: 50%; pointer-events: none; z-index: 0;
@@ -337,7 +701,7 @@ svg.word { width: min(860px, 92vw); height: auto; overflow: visible; display: bl
 }
 .chevron {
   appearance: none; border: 0; cursor: pointer;
-  width: 104px; height: 30px; border-radius: 999px;
+  width: 120px; height: 34px; border-radius: 999px;
   display: grid; place-items: center;
   color: var(--glass-ink);
   pointer-events: auto;
@@ -347,10 +711,10 @@ svg.word { width: min(860px, 92vw); height: auto; overflow: visible; display: bl
   -webkit-tap-highlight-color: transparent;
 }
 .chevron.in { opacity: 1; translate: 0 0; }
-.chevron svg { width: 46px; height: 12px; position: relative; z-index: 4; overflow: visible; transition: rotate .6s var(--spring), translate .4s var(--spring); }
-.chevron:hover svg { translate: 0 -2px; }
-.chevron[aria-expanded="true"] svg { rotate: 180deg; }
-.chevron[aria-expanded="true"]:hover svg { translate: 0 2px; }
+.chevron svg { width: 48px; height: 13px; position: relative; z-index: 4; overflow: visible; transition: scale .42s cubic-bezier(.3, .7, .2, 1), translate .35s cubic-bezier(.3, .7, .2, 1); }
+.chevron:hover svg { translate: 0 -1.5px; }
+.chevron[aria-expanded="true"] svg { scale: 1 -1; }
+.chevron[aria-expanded="true"]:hover svg { translate: 0 1.5px; }
 .chevron:focus-visible { outline: 2px solid var(--blue); outline-offset: 3px; }
 
 .dock {
@@ -404,7 +768,9 @@ svg.word { width: min(860px, 92vw); height: auto; overflow: visible; display: bl
 @media (max-width: 640px) {
   .item .hide-sm { display: none; }
   .dock { gap: 6px; padding: 8px 9px; }
-  .tile { width: calc(42px * var(--mag)); height: calc(42px * var(--mag)); border-radius: calc(12px * var(--mag)); }
+  .tile { width: calc(42px * var(--mag)); height: calc(42px * var(--mag)); border-radius: calc(11px * var(--mag)); }
+  .win .split { grid-template-columns: 1fr; }
+  .win .side { display: none; }
 }
 @media (prefers-reduced-motion: reduce) {
   .capsule, .item, .chevron, .dock, .tile .rise, .bubble, .pop, .tip { transition: none !important; }
@@ -446,6 +812,211 @@ svg.word { width: min(860px, 92vw); height: auto; overflow: visible; display: bl
 @media (prefers-reduced-motion: reduce) {
   .cluster g, .cluster circle.on { animation: none; }
 }
+/* ======================= setup ======================= */
+.setup {
+  position: fixed; inset: 0; z-index: 5;
+  display: grid; grid-template-rows: auto minmax(0, 1fr) auto;
+  padding: max(26px, env(safe-area-inset-top, 0px)) max(20px, env(safe-area-inset-right, 0px)) max(26px, env(safe-area-inset-bottom, 0px)) max(20px, env(safe-area-inset-left, 0px));
+  background: var(--paper); color: var(--ink);
+  opacity: 0; transition: opacity .6s ease, background-color .5s ease, color .5s ease;
+}
+.setup[hidden] { display: none; }
+.setup.on { opacity: 1; }
+.sprog { display: flex; justify-content: center; gap: 6px; padding-top: 6px; }
+.sprog i { width: 22px; height: 3px; border-radius: 99px; background: rgba(20,24,40,.14); transition: background-color .4s ease, width .6s var(--spring); }
+.sprog i.done { background: var(--blue); }
+.sprog i.now { width: 42px; background: var(--blue); }
+
+.sstage {
+  display: grid; grid-template-columns: minmax(0, 430px) minmax(0, 340px);
+  gap: clamp(28px, 7vw, 110px); justify-content: center; align-items: center;
+  transition: opacity .5s ease, translate .8s var(--spring-soft), filter .5s ease;
+}
+.sstage.out-l, .sstage.out-r { opacity: 0; filter: blur(6px); transition: opacity .22s ease, translate .26s ease-in, filter .22s ease; }
+.sstage.out-l { translate: -40px 0; }
+.sstage.out-r { translate: 40px 0; }
+.sstage.from-r, .sstage.from-l { opacity: 0; filter: blur(6px); transition: none; }
+.sstage.from-r { translate: 40px 0; }
+.sstage.from-l { translate: -40px 0; }
+
+.snum { font: 600 11px/1 var(--sans); letter-spacing: .08em; text-transform: uppercase; color: var(--glass-sub); }
+.sq h1 {
+  margin: 16px 0 12px;
+  font: 400 clamp(38px, 4.6vw, 58px)/1.04 var(--serif); font-variation-settings: "opsz" 30;
+  letter-spacing: -.015em; color: var(--ink); text-wrap: balance;
+}
+.sq p { margin: 0; max-width: 38ch; font: 400 15px/1.5 var(--sans); color: var(--glass-sub); }
+.sprev { margin-top: 30px; min-height: 0; }
+.sprev:empty { display: none; }
+
+/* the 3D wheel */
+.wheel { position: relative; height: 344px; perspective: 1100px; }
+.wtrack {
+  position: absolute; inset: 0;
+  overflow-y: scroll; overscroll-behavior: contain;
+  scroll-snap-type: y mandatory;
+  scrollbar-width: none;
+  perspective: 560px;
+  transform: rotateY(-15deg) rotateZ(-2.5deg);
+  -webkit-mask-image: linear-gradient(transparent, #000 14%, #000 86%, transparent);
+  mask-image: linear-gradient(transparent, #000 14%, #000 86%, transparent);
+  outline: none;
+  cursor: grab;
+}
+.wtrack::-webkit-scrollbar { display: none; }
+.wi {
+  height: 50px; padding: 0 20px;
+  display: flex; align-items: center;
+  scroll-snap-align: center;
+  font: 600 27px/1 var(--sans); letter-spacing: -.02em;
+  color: var(--glass-sub); white-space: nowrap;
+  transform-origin: 20px 50%;
+  will-change: transform, opacity, filter;
+  user-select: none; cursor: pointer;
+  transition: color .2s ease;
+}
+.wi.on { color: var(--ink); }
+.wband {
+  position: absolute; left: 0; right: 0; top: 50%; height: 52px; margin-top: -26px;
+  border-radius: 14px;
+  background: rgba(var(--blue-rgb), .055);
+  box-shadow: inset 0 0 0 1px rgba(var(--blue-rgb), .10);
+  transform: rotateY(-15deg) rotateZ(-2.5deg);
+  pointer-events: none;
+  transition: box-shadow .2s ease;
+}
+.wheel:focus-within .wband { box-shadow: inset 0 0 0 2px rgba(var(--blue-rgb), .4); }
+
+.snav { display: flex; justify-content: space-between; align-items: center; width: min(900px, 100%); margin: 0 auto; }
+.sback {
+  appearance: none; border: 0; background: none; cursor: pointer;
+  font: 500 15px/1 var(--sans); color: var(--glass-sub); padding: 14px 8px;
+}
+.sback:hover { color: var(--ink); }
+.snext {
+  appearance: none; border: 0; cursor: pointer;
+  height: 52px; padding: 0 22px 0 26px; border-radius: 999px;
+  display: inline-flex; align-items: center; gap: 10px;
+  font: 600 15.5px/1 var(--sans); color: #fff; background: var(--blue);
+  box-shadow: 0 1px 2px rgba(var(--blue-rgb), .3), 0 10px 24px -10px rgba(var(--blue-rgb), .7);
+  transition: background-color .15s ease, scale .5s var(--spring);
+}
+.snext:hover { background: #0036E0; }
+.snext:active { scale: .95; transition-duration: .15s, .12s; }
+.snext svg { width: 18px; height: 18px; transition: translate .35s var(--spring); }
+.snext:hover svg { translate: 3px 0; }
+.sback:focus-visible, .snext:focus-visible { outline: 2px solid var(--blue); outline-offset: 4px; border-radius: 999px; }
+
+/* previews */
+.clockprev { font: 400 76px/1 var(--serif); font-variation-settings: "opsz" 30; color: var(--blue); font-variant-numeric: tabular-nums; letter-spacing: -.01em; }
+.mock {
+  position: relative; width: min(320px, 100%); aspect-ratio: 16 / 10;
+  border-radius: 16px; overflow: hidden;
+  box-shadow: 0 0 0 1px rgba(20,24,40,.10), 0 14px 32px -16px rgba(20,28,60,.45);
+}
+.mock .mw { position: absolute; inset: 0; transition: opacity .4s ease; }
+.mock .mbar { position: absolute; top: 9px; left: 9px; right: 9px; display: flex; justify-content: space-between; }
+.mock .mbar i, .mock .mdock {
+  background: rgba(255,255,255,.86);
+  box-shadow: 0 0 0 .5px rgba(20,24,40,.14), 0 2px 6px -2px rgba(20,28,60,.3);
+}
+.mock .mbar i { display: block; height: 13px; border-radius: 99px; width: 54px; }
+.mock .mbar i + i { width: 96px; }
+.mock .mdock { position: absolute; left: 50%; bottom: 10px; translate: -50% 0; display: flex; gap: 5px; padding: 5px 6px; border-radius: 10px; }
+.mock .mdock b { width: 19px; height: 19px; border-radius: 5px; background: linear-gradient(#fff, #edf0f5); box-shadow: 0 0 0 .5px rgba(20,24,40,.16); }
+.mock.dark .mbar i, .mock.dark .mdock { background: rgba(40,44,54,.88); box-shadow: 0 0 0 .5px rgba(255,255,255,.1), 0 2px 6px -2px rgba(0,0,0,.6); }
+.mock.dark .mdock b { background: linear-gradient(#3a3f4b, #2a2e37); box-shadow: 0 0 0 .5px rgba(255,255,255,.08); }
+.mock.dark .wp-dots, .mock.dark .wp-plain { background: #0c0e13; }
+.mock.dark .wp-sky {
+  background:
+    radial-gradient(85% 85% at 12% 108%, rgba(1,65,253,.55), rgba(1,65,253,0) 62%),
+    linear-gradient(180deg, #0e1424, #0c0e13 72%);
+}
+.icons-prev { display: flex; gap: 12px; flex-wrap: wrap; }
+.icons-prev b {
+  width: 58px; height: 58px; border-radius: 15px;
+  background: linear-gradient(#ffffff, #eef0f5);
+  box-shadow: 0 0 0 1px rgba(20,24,40,.08), 0 6px 14px -8px rgba(20,28,60,.4);
+  transition: background .5s ease, box-shadow .5s ease;
+}
+.icons-prev.on b { background: linear-gradient(#4d7dff, #0035d8); box-shadow: 0 0 0 1px rgba(1,30,120,.2), 0 8px 18px -8px rgba(var(--blue-rgb), .7); }
+.icons-prev.on b:nth-child(2) { background: linear-gradient(#6f95ff, #1b4ae6); }
+.icons-prev.on b:nth-child(3) { background: linear-gradient(#3a6aff, #002ab0); }
+.icons-prev.on b:nth-child(4) { background: linear-gradient(#86a7ff, #2f5cf0); }
+.icons-prev.on b:nth-child(5) { background: linear-gradient(#5a86ff, #0a3de0); }
+.icons-prev.dark b { background: linear-gradient(#323743, #23262e); box-shadow: 0 0 0 1px rgba(255,255,255,.06), 0 6px 14px -8px rgba(0,0,0,.7); }
+.icons-prev.dark.on b { background: linear-gradient(#1c2b55, #111a35); box-shadow: inset 0 0 0 1px rgba(111,147,255,.35), 0 6px 14px -8px rgba(0,0,0,.7); }
+.prevnote { margin-top: 12px; font: 400 12.5px/1.4 var(--sans); color: var(--glass-sub); }
+
+@media (max-width: 760px) {
+  .sstage { grid-template-columns: minmax(0, 1fr); align-content: center; gap: 18px; }
+  .wheel { height: 250px; }
+  .sprev { display: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .sstage, .setup { transition: none !important; }
+}
+
+/* ======================= adaptive icons ======================= */
+html.adaptive .tile .rise svg { filter: grayscale(1) contrast(1.05) brightness(1.06); }
+html.adaptive .tile .rise::after {
+  content: ""; position: absolute; inset: 0; border-radius: inherit; pointer-events: none;
+  background: var(--blue); mix-blend-mode: color; opacity: .9;
+}
+html.dark.adaptive .tile .rise svg { filter: grayscale(1) brightness(.36) contrast(1.3); }
+html.dark.adaptive .tile .rise::after { background: #5b84ff; mix-blend-mode: color; opacity: .8; }
+
+/* ======================= dark ======================= */
+html.dark { --paper: #0c0e13; --ink: #f1f2f5; --glass-ink: #f1f2f5; --glass-sub: #9aa1ae; color-scheme: dark; }
+html.dark body { background: #0c0e13; }
+html.dark .glass {
+  background: linear-gradient(180deg, rgba(46,50,61,.74), rgba(28,31,39,.64));
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.14),
+    inset 0 -1px 0 rgba(255,255,255,.04),
+    inset 0 0 0 .5px rgba(255,255,255,.08),
+    0 0 0 1px rgba(0,0,0,.45),
+    0 2px 6px -1px rgba(0,0,0,.45),
+    0 14px 34px -12px rgba(0,0,0,.7);
+}
+html.dark .glass::before { background: linear-gradient(140deg, rgba(255,255,255,.38), rgba(255,255,255,.06) 25%, rgba(255,255,255,.03) 50%, rgba(255,255,255,.07) 75%, rgba(255,255,255,.26)); }
+html.dark .glass::after { mix-blend-mode: overlay; opacity: .32; }
+html.dark .bubble { background: linear-gradient(180deg, rgba(255,255,255,.17), rgba(255,255,255,.08)); box-shadow: inset 0 1px 0 rgba(255,255,255,.2), 0 0 0 .5px rgba(255,255,255,.08), 0 3px 10px -3px rgba(0,0,0,.6); }
+html.dark .ic .soft { stroke: #7d8494; }
+html.dark .ic .softfill { fill: #7d8494; }
+html.dark .win, html.dark .search { background: linear-gradient(180deg, rgba(34,37,46,.94), rgba(23,25,32,.9)); }
+html.dark .x { background: rgba(255,255,255,.08); }
+html.dark .x:hover { background: rgba(255,255,255,.14); }
+html.dark .side { background: rgba(255,255,255,.04); }
+html.dark .sec:hover, html.dark .frow:hover, html.dark .krow:hover { background: rgba(255,255,255,.06); }
+html.dark .sec.on { background: rgba(255,255,255,.1); box-shadow: inset 0 1px 0 rgba(255,255,255,.08); }
+html.dark .krow.on { background: rgba(255,255,255,.1); }
+html.dark .rows, html.dark .card, html.dark .code, html.dark .preview, html.dark .cprev { background: #1b1e25; box-shadow: 0 0 0 1px rgba(255,255,255,.06); }
+html.dark .srow + .srow { border-color: rgba(255,255,255,.07); }
+html.dark .sw { background: #3a3f4b; }
+html.dark .sres, html.dark .sfoot { border-color: rgba(255,255,255,.08); }
+html.dark .search kbd { background: rgba(255,255,255,.08); }
+html.dark .scrim { background: rgba(5,7,12,.38); }
+html.dark .wall [data-w="dots"], html.dark .wall [data-w="plain"], html.dark .wp-dots, html.dark .wp-plain { background: #0c0e13; }
+html.dark .wall [data-w="sky"], html.dark .wp-sky {
+  background:
+    radial-gradient(85% 85% at 12% 108%, rgba(1,65,253,.55), rgba(1,65,253,0) 62%),
+    radial-gradient(70% 80% at 96% -12%, rgba(80,140,255,.28), rgba(80,140,255,0) 60%),
+    linear-gradient(180deg, #0e1424, #0c0e13 72%);
+}
+html.dark .cluster circle { fill: #6f93ff; }
+html.dark .welcome text { fill: #7d9cff; }
+html.dark .dock .sep { background: linear-gradient(rgba(255,255,255,0), rgba(255,255,255,.2), rgba(255,255,255,0)); }
+html.dark .tile::after { background: #f1f2f5; }
+html.dark .wsub, html.dark .ghostbtn { background: rgba(111,147,255,.16); color: #9bb3ff; }
+html.dark .digits, html.dark .w-clock .big, html.dark .about .name, html.dark .clockprev { color: #7d9cff; }
+html.dark .row.on { background: rgba(111,147,255,.16); }
+html.dark .row.on .rg { color: #9bb3ff; }
+html.dark .sprog i { background: rgba(255,255,255,.16); }
+html.dark .sprog i.done, html.dark .sprog i.now { background: #4d7dff; }
+html.dark .wband { background: rgba(111,147,255,.08); box-shadow: inset 0 0 0 1px rgba(111,147,255,.16); }
+html.dark .mock { box-shadow: 0 0 0 1px rgba(255,255,255,.08), 0 14px 32px -16px rgba(0,0,0,.8); }
+html.dark .batbar, html.dark .x { background: rgba(255,255,255,.08); }
 </style>
 </head>
 <body>
@@ -471,42 +1042,164 @@ svg.word { width: min(860px, 92vw); height: auto; overflow: visible; display: bl
   </div>
 </main>
 
+<section class="setup" id="setup" hidden aria-label="Set up Windmill">
+  <div class="sprog" id="sprog" aria-hidden="true"></div>
+  <div class="sstage" id="sstage">
+    <div class="sq">
+      <div class="snum" id="snum"></div>
+      <h1 id="stitle"></h1>
+      <p id="ssub"></p>
+      <div class="sprev" id="sprev"></div>
+    </div>
+    <div class="wheel">
+      <div class="wband" aria-hidden="true"></div>
+      <div class="wtrack" id="wtrack" role="listbox" tabindex="0"></div>
+    </div>
+  </div>
+  <div class="snav">
+    <button class="sback" type="button" id="sback">Back</button>
+    <button class="snext" type="button" id="snext"><span>Continue</span><svg viewBox="0 0 18 18" aria-hidden="true"><path d="M4 9h10M10 5l4 4-4 4" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+  </div>
+</section>
+
 <section class="home" id="home" hidden aria-label="Windmill">
+  <div class="wall" id="wall" aria-hidden="true"><i data-w="dots" class="on"></i><i data-w="plain"></i><i data-w="sky"></i><i data-w="deep"></i></div>
   <header class="bar" id="bar">
     <nav class="glass capsule" id="capL" aria-label="Windmill">
       <span class="bubble" aria-hidden="true"></span>
-      <button class="item icon" type="button" style="--i:0" data-label="Files" data-pop="files"><svg class="ic" viewBox="0 0 24 24"><path d="M3.5 7.5a2 2 0 0 1 2-2h3.6l2 2.2h7.4a2 2 0 0 1 2 2v7.8a2 2 0 0 1-2 2h-13a2 2 0 0 1-2-2z"/><path class="soft" d="M3.8 10h16.4"/></svg></button>
-      <button class="item icon" type="button" style="--i:1" data-label="Widgets" data-pop="widgets"><svg class="ic" viewBox="0 0 24 24"><rect x="4" y="4" width="6.5" height="6.5" rx="2"/><rect x="13.5" y="4" width="6.5" height="6.5" rx="2"/><rect x="4" y="13.5" width="6.5" height="6.5" rx="2"/><rect class="softfill" x="13.5" y="13.5" width="6.5" height="6.5" rx="2"/></svg></button>
-      <button class="item icon" type="button" style="--i:2" data-label="Phone" data-pop="phone"><svg class="ic" viewBox="0 0 24 24"><rect x="6.5" y="2.8" width="11" height="18.4" rx="3"/><path class="soft" d="M10.5 18h3"/><path class="soft" d="M10.8 5.6h2.4"/></svg></button>
-      <button class="item icon" type="button" style="--i:3" data-label="Settings" data-pop="settings"><svg class="ic" viewBox="0 0 24 24"><circle cx="12" cy="12" r="5.6"/><path d="M12 12l2.6-2.6"/><g class="softfill"><circle cx="12" cy="3.6" r=".95"/><circle cx="12" cy="20.4" r=".95"/><circle cx="3.6" cy="12" r=".95"/><circle cx="20.4" cy="12" r=".95"/><circle cx="6.1" cy="6.1" r=".95"/><circle cx="17.9" cy="6.1" r=".95"/><circle cx="6.1" cy="17.9" r=".95"/><circle cx="17.9" cy="17.9" r=".95"/></g></svg></button>
+      <button class="item icon" type="button" style="--i:0" data-label="Windmill Search" data-search id="searchBtn"><svg class="ic" viewBox="0 0 24 24"><circle cx="10.8" cy="10.8" r="6.3"/><path d="M15.6 15.6l4.4 4.4"/></svg></button>
+      <button class="item icon" type="button" style="--i:1" data-label="Files" data-open="files" data-bar="files"><svg class="ic" viewBox="0 0 24 24"><path d="M3.5 7.5a2 2 0 0 1 2-2h3.6l2 2.2h7.4a2 2 0 0 1 2 2v7.8a2 2 0 0 1-2 2h-13a2 2 0 0 1-2-2z"/><path class="soft" d="M3.8 10h16.4"/></svg></button>
+      <button class="item icon" type="button" style="--i:2" data-label="Widgets" data-open="widgets" data-bar="widgets"><svg class="ic" viewBox="0 0 24 24"><rect x="4" y="4" width="6.5" height="6.5" rx="2"/><rect x="13.5" y="4" width="6.5" height="6.5" rx="2"/><rect x="4" y="13.5" width="6.5" height="6.5" rx="2"/><rect class="softfill" x="13.5" y="13.5" width="6.5" height="6.5" rx="2"/></svg></button>
+      <button class="item icon" type="button" style="--i:3" data-label="Phone" data-open="phone" data-bar="phone"><svg class="ic" viewBox="0 0 24 24"><rect x="6.5" y="2.8" width="11" height="18.4" rx="3"/><path class="soft" d="M10.5 18h3"/><path class="soft" d="M10.8 5.6h2.4"/></svg></button>
+      <button class="item icon" type="button" style="--i:4" data-label="Settings" data-open="settings"><svg class="ic" viewBox="0 0 24 24"><circle cx="12" cy="12" r="5.6"/><path d="M12 12l2.6-2.6"/><g class="softfill"><circle cx="12" cy="3.6" r=".95"/><circle cx="12" cy="20.4" r=".95"/><circle cx="3.6" cy="12" r=".95"/><circle cx="20.4" cy="12" r=".95"/><circle cx="6.1" cy="6.1" r=".95"/><circle cx="17.9" cy="6.1" r=".95"/><circle cx="6.1" cy="17.9" r=".95"/><circle cx="17.9" cy="17.9" r=".95"/></g></svg></button>
     </nav>
     <div class="glass capsule" id="capR" aria-label="Status">
       <span class="bubble" aria-hidden="true"></span>
-      <button class="item" type="button" style="--i:0" id="locBtn" data-label="Location"><svg class="ic" viewBox="0 0 24 24"><path d="M12 21s-6.2-5.6-6.2-10.6a6.2 6.2 0 0 1 12.4 0C18.2 15.4 12 21 12 21z"/><circle class="softfill" cx="12" cy="10.3" r="2.2"/></svg><span class="hide-sm" id="locText">Here</span></button>
-      <button class="item" type="button" style="--i:1" id="wxBtn" data-label="Weather"><span id="wxIcon"></span><span id="wxText" class="hide-sm"></span></button>
-      <button class="item icon" type="button" style="--i:2" id="volBtn" data-label="Volume">
+      <button class="item" type="button" style="--i:0" id="locBtn" data-label="Location" data-bar="location"><svg class="ic" viewBox="0 0 24 24"><path d="M12 21s-6.2-5.6-6.2-10.6a6.2 6.2 0 0 1 12.4 0C18.2 15.4 12 21 12 21z"/><circle class="softfill" cx="12" cy="10.3" r="2.2"/></svg><span class="hide-sm" id="locText">Here</span></button>
+      <button class="item" type="button" style="--i:1" id="wxBtn" data-label="Weather" data-bar="weather"><span id="wxIcon"></span><span id="wxText" class="hide-sm"></span></button>
+      <button class="item icon" type="button" style="--i:2" id="volBtn" data-label="Volume" data-bar="volume">
         <svg class="ic" viewBox="0 0 24 24"><path d="M4.5 9.5h3l4.5-4v13l-4.5-4h-3z"/><path id="w1" d="M15 9.6a3.4 3.4 0 0 1 0 4.8"/><path id="w2" class="soft" d="M17.6 7a7 7 0 0 1 0 10"/><path id="mute" d="M15.5 9.5l5 5M20.5 9.5l-5 5" style="display:none"/></svg>
       </button>
-      <button class="item" type="button" style="--i:3" id="timeBtn" data-label="Date and time"><span class="sub hide-sm" id="dateText"></span><span id="timeText"></span></button>
+      <button class="item" type="button" style="--i:3" id="timeBtn" data-label="Date and time" data-bar="date"><span class="sub hide-sm" id="dateText"></span><span id="timeText"></span></button>
     </div>
   </header>
 
-  <div class="glass pop" id="pop" role="dialog" aria-live="polite"><h3 id="popTitle"></h3><p id="popText"></p><span class="tag">In the app</span></div>
+  <div class="scrim" id="scrim"></div>
+
+  <!-- Windmill Search -->
+  <div class="glass search" id="search" role="dialog" aria-modal="true" aria-label="Windmill Search" aria-hidden="true">
+    <label class="sbar">
+      <svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.8" cy="10.8" r="6.3"/><path d="M15.6 15.6l4.4 4.4"/></svg>
+      <input id="q" type="text" placeholder="Windmill Search" autocomplete="off" spellcheck="false" aria-controls="sres">
+      <kbd>Esc</kbd>
+    </label>
+    <div class="sres" id="sres" role="listbox" aria-label="Results"></div>
+    <div class="sfoot"><span><kbd>&uarr;</kbd><kbd>&darr;</kbd> to move</span><span><kbd>Enter</kbd> to open</span><span class="sfoot-r" id="skey">Ctrl K</span></div>
+  </div>
+
+  <!-- Settings (also what the Windmill app opens) -->
+  <section class="glass win" id="win-settings" data-w="760" data-h="500" role="dialog" aria-label="Settings" aria-hidden="true">
+    <header class="whead"><h2>Settings</h2><button class="x" type="button" aria-label="Close Settings"><svg viewBox="0 0 14 14"><path d="M3 3l8 8M11 3l-8 8" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></button></header>
+    <div class="wbody split">
+      <nav class="side" aria-label="Settings sections">
+        <button class="sec on" type="button" data-sec="wallpaper"><svg class="ic" viewBox="0 0 24 24"><rect x="3" y="4.5" width="18" height="15" rx="3"/><path class="soft" d="M3.5 16.5l5-5 4 4 2.5-2.5 5.5 5"/><circle class="softfill" cx="15.8" cy="9" r="1.7"/></svg>Wallpaper</button>
+        <button class="sec" type="button" data-sec="menubar"><svg class="ic" viewBox="0 0 24 24"><rect x="3" y="4.5" width="18" height="15" rx="3"/><path class="soft" d="M3.5 9h17"/><circle class="softfill" cx="6.4" cy="6.8" r=".9"/><circle class="softfill" cx="9" cy="6.8" r=".9"/></svg>Menu bar</button>
+        <button class="sec" type="button" data-sec="cursor"><svg class="ic" viewBox="0 0 24 24"><path d="M6 4l12.5 6.2-5.4 1.5-2.5 5.3z"/><path class="soft" d="M13.4 12.2l4.6 4.6"/></svg>Cursor</button>
+        <button class="sec" type="button" data-sec="about"><svg class="ic" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path class="soft" d="M12 11v5"/><circle class="fill" cx="12" cy="8" r="1.1"/></svg>About</button>
+      </nav>
+      <div class="pane">
+        <div class="panel on" data-panel="wallpaper">
+          <h3>Wallpaper</h3>
+          <p class="lead">What sits behind everything. Any wallpaper other than Dots clears the dots.</p>
+          <div class="walls">
+            <button class="wcard on" type="button" data-wall="dots" aria-pressed="true"><span class="wprev wp-dots"></span>Dots</button>
+            <button class="wcard" type="button" data-wall="sky" aria-pressed="false"><span class="wprev wp-sky"></span>Sky</button>
+            <button class="wcard" type="button" data-wall="deep" aria-pressed="false"><span class="wprev wp-deep"></span>Deep blue</button>
+            <button class="wcard" type="button" data-wall="plain" aria-pressed="false"><span class="wprev wp-plain"></span>No wallpaper</button>
+          </div>
+        </div>
+        <div class="panel" data-panel="menubar">
+          <h3>Menu bar</h3>
+          <p class="lead">Choose what shows in the bar at the top. Windmill Search and Settings always stay.</p>
+          <div class="rows">
+            <div class="srow"><span class="lbl"><svg class="ic" viewBox="0 0 24 24"><path d="M3.5 7.5a2 2 0 0 1 2-2h3.6l2 2.2h7.4a2 2 0 0 1 2 2v7.8a2 2 0 0 1-2 2h-13a2 2 0 0 1-2-2z"/><path class="soft" d="M3.8 10h16.4"/></svg>Files</span><button class="sw" type="button" role="switch" aria-checked="true" aria-label="Files" data-toggle="files"><i></i></button></div>
+            <div class="srow"><span class="lbl"><svg class="ic" viewBox="0 0 24 24"><rect x="4" y="4" width="6.5" height="6.5" rx="2"/><rect x="13.5" y="4" width="6.5" height="6.5" rx="2"/><rect x="4" y="13.5" width="6.5" height="6.5" rx="2"/><rect class="softfill" x="13.5" y="13.5" width="6.5" height="6.5" rx="2"/></svg>Widgets</span><button class="sw" type="button" role="switch" aria-checked="true" aria-label="Widgets" data-toggle="widgets"><i></i></button></div>
+            <div class="srow"><span class="lbl"><svg class="ic" viewBox="0 0 24 24"><rect x="6.5" y="2.8" width="11" height="18.4" rx="3"/><path class="soft" d="M10.5 18h3"/></svg>Phone</span><button class="sw" type="button" role="switch" aria-checked="true" aria-label="Phone" data-toggle="phone"><i></i></button></div>
+            <div class="srow"><span class="lbl"><svg class="ic" viewBox="0 0 24 24"><path d="M12 21s-6.2-5.6-6.2-10.6a6.2 6.2 0 0 1 12.4 0C18.2 15.4 12 21 12 21z"/><circle class="softfill" cx="12" cy="10.3" r="2.2"/></svg>Location</span><button class="sw" type="button" role="switch" aria-checked="true" aria-label="Location" data-toggle="location"><i></i></button></div>
+            <div class="srow"><span class="lbl"><svg class="ic" viewBox="0 0 24 24"><path d="M7.5 18.5h10a4 4 0 0 0 .4-8 5.6 5.6 0 0 0-10.8 1.6A3.2 3.2 0 0 0 7.5 18.5z"/></svg>Weather</span><button class="sw" type="button" role="switch" aria-checked="true" aria-label="Weather" data-toggle="weather"><i></i></button></div>
+            <div class="srow"><span class="lbl"><svg class="ic" viewBox="0 0 24 24"><path d="M4.5 9.5h3l4.5-4v13l-4.5-4h-3z"/><path class="soft" d="M15 9.6a3.4 3.4 0 0 1 0 4.8"/></svg>Volume</span><button class="sw" type="button" role="switch" aria-checked="true" aria-label="Volume" data-toggle="volume"><i></i></button></div>
+            <div class="srow"><span class="lbl"><svg class="ic" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path class="soft" d="M12 7.5V12l3 2"/></svg>Date</span><button class="sw" type="button" role="switch" aria-checked="true" aria-label="Date" data-toggle="date"><i></i></button></div>
+          </div>
+        </div>
+        <div class="panel" data-panel="cursor">
+          <h3>Cursor</h3>
+          <p class="lead">Pick the pointer you see everywhere in Windmill.</p>
+          <div class="curs">
+            <button class="ccard on" type="button" data-cursor="system" aria-pressed="true"><span class="cprev"><svg viewBox="0 0 28 28"><path d="M5 3.5l16.5 8.2-7 1.9-3.3 6.9z" fill="#141413" stroke="#fff" stroke-width="1.8" stroke-linejoin="round"/></svg></span>System</button>
+            <button class="ccard" type="button" data-cursor="windmill" aria-pressed="false"><span class="cprev"><svg viewBox="0 0 28 28"><path d="M5 3.5l16.5 8.2-7 1.9-3.3 6.9z" fill="#0141FD" stroke="#fff" stroke-width="1.8" stroke-linejoin="round"/></svg></span>Windmill</button>
+            <button class="ccard" type="button" data-cursor="dot" aria-pressed="false"><span class="cprev"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="6" fill="#0141FD" stroke="#fff" stroke-width="2.5"/></svg></span>Dot</button>
+          </div>
+        </div>
+        <div class="panel" data-panel="about">
+          <div class="about">
+            <svg viewBox="0 0 100 100" aria-hidden="true"><g fill="#0141FD"><g transform="rotate(0 50 50)"><polygon points="50,52 29,9 64,1 60,47"/></g><g transform="rotate(90 50 50)"><polygon points="50,52 29,9 64,1 60,47"/></g><g transform="rotate(180 50 50)"><polygon points="50,52 29,9 64,1 60,47"/></g><g transform="rotate(270 50 50)"><polygon points="50,52 29,9 64,1 60,47"/></g><circle cx="50" cy="50" r="10"/></g></svg>
+            <div class="name">Windmill</div>
+            <p>Your computer's apps, in one calm space. This is a preview of how the app will look and feel.</p>
+            <div class="meta">Preview &middot; v0.1</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Files -->
+  <section class="glass win" id="win-files" data-w="760" data-h="480" role="dialog" aria-label="Files" aria-hidden="true">
+    <header class="whead"><h2>Files</h2><span class="wsub">Example files</span><button class="x" type="button" aria-label="Close Files"><svg viewBox="0 0 14 14"><path d="M3 3l8 8M11 3l-8 8" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></button></header>
+    <div class="wbody split">
+      <nav class="side tree" id="tree" aria-label="Folders"><div class="tlabel">Projects</div></nav>
+      <div class="preview" id="fprev"><div class="fbig" id="fBig"></div><div class="fname" id="fName"></div><div class="fmeta" id="fMeta"></div></div>
+    </div>
+  </section>
+
+  <!-- Widgets -->
+  <section class="glass win" id="win-widgets" data-w="640" data-h="480" role="dialog" aria-label="Widgets" aria-hidden="true">
+    <header class="whead"><h2>Widgets</h2><button class="x" type="button" aria-label="Close Widgets"><svg viewBox="0 0 14 14"><path d="M3 3l8 8M11 3l-8 8" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></button></header>
+    <div class="wbody grid4">
+      <div class="card w-clock" style="--i:0"><div class="ttl">Clock</div><div class="big" id="wgTime"></div><div class="small" id="wgDate"></div></div>
+      <div class="card w-wx" style="--i:1"><div class="ttl">Weather</div><div class="wxi" id="wgWxIcon"></div><div class="big" id="wgWxT"></div><div class="small" id="wgWxP"></div></div>
+      <div class="card w-cal" style="--i:2"><div class="ttl" id="wgMonth"></div><div class="cal" id="wgCal"></div></div>
+      <div class="card w-bat" style="--i:3"><div class="ttl">Battery</div><div class="big" id="wgBat">&mdash;</div><div class="small" id="wgBatNote"></div><div class="batbar"><i id="wgBatBar"></i></div></div>
+    </div>
+  </section>
+
+  <!-- Phone -->
+  <section class="glass win" id="win-phone" data-w="600" data-h="400" role="dialog" aria-label="Phone" aria-hidden="true">
+    <header class="whead"><h2>Phone</h2><span class="wsub">Coming to Android</span><button class="x" type="button" aria-label="Close Phone"><svg viewBox="0 0 14 14"><path d="M3 3l8 8M11 3l-8 8" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></button></header>
+    <div class="wbody phone">
+      <div class="code"><div class="ttl small">Pairing code</div><div class="digits" id="pairCode">000 000</div><button class="ghostbtn" type="button" id="newCode">New code</button></div>
+      <ol class="steps">
+        <li>Install Windmill on your Android phone.</li>
+        <li>Open it and tap <b>Pair with a computer</b>.</li>
+        <li>Type this code. This screen shows up on your phone, and you can use your apps from there.</li>
+      </ol>
+      <p class="note">The Android app isn't out yet. This shows how pairing will work.</p>
+    </div>
+  </section>
   <div class="glass tip" id="tip" role="tooltip"></div>
 
   <div class="dockwrap">
     <div class="glass dock" id="dock" aria-label="Apps">
-      <button class="tile brand" type="button" data-label="Windmill" style="--i:0"><span class="rise"><svg viewBox="0 0 100 100"><g fill="currentColor"><g transform="rotate(0 50 50)"><polygon points="50,52 29,9 64,1 60,47"/></g><g transform="rotate(90 50 50)"><polygon points="50,52 29,9 64,1 60,47"/></g><g transform="rotate(180 50 50)"><polygon points="50,52 29,9 64,1 60,47"/></g><g transform="rotate(270 50 50)"><polygon points="50,52 29,9 64,1 60,47"/></g><circle cx="50" cy="50" r="9"/></g></svg></span></button>
+      <button class="tile" type="button" data-label="Windmill" data-app="windmill" style="--i:0"><span class="rise"><svg viewBox="0 0 60 60"><defs><linearGradient id="ai-wm" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#3d72ff"/><stop offset="1" stop-color="#0033d6"/></linearGradient></defs><rect width="60" height="60" rx="14" fill="url(#ai-wm)"/><g transform="translate(30 30) scale(.38) translate(-50 -50)" fill="#fff"><g transform="rotate(0 50 50)"><polygon points="50,52 29,9 64,1 60,47"/></g><g transform="rotate(90 50 50)"><polygon points="50,52 29,9 64,1 60,47"/></g><g transform="rotate(180 50 50)"><polygon points="50,52 29,9 64,1 60,47"/></g><g transform="rotate(270 50 50)"><polygon points="50,52 29,9 64,1 60,47"/></g><circle cx="50" cy="50" r="10"/></g><rect x="1" y="1" width="58" height="29" rx="13" fill="#fff" opacity=".07"/></svg></span></button>
       <span class="sep" aria-hidden="true"></span>
-      <button class="tile " type="button" data-label="Files" style="--i:1"><span class="rise"><svg class="ic" viewBox="0 0 24 24"><path d="M3.5 7.5a2 2 0 0 1 2-2h3.6l2 2.2h7.4a2 2 0 0 1 2 2v7.8a2 2 0 0 1-2 2h-13a2 2 0 0 1-2-2z"/><path class="soft" d="M3.8 10h16.4"/></svg></span></button>
-      <button class="tile  running" type="button" data-label="Browser" style="--i:2"><span class="rise"><svg class="ic" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path class="soft" d="M3.8 9.5h16.4M3.8 14.5h16.4"/><path d="M12 3.5c-2.6 2.4-3.8 5.2-3.8 8.5s1.2 6.1 3.8 8.5c2.6-2.4 3.8-5.2 3.8-8.5S14.6 5.9 12 3.5z"/></svg></span></button>
-      <button class="tile  running" type="button" data-label="Terminal" style="--i:3"><span class="rise"><svg class="ic" viewBox="0 0 24 24"><rect x="3" y="4.5" width="18" height="15" rx="3"/><path d="M7.5 10l2.6 2.2-2.6 2.2"/><path class="soft" d="M12.5 15h4"/></svg></span></button>
-      <button class="tile  running" type="button" data-label="Code" style="--i:4"><span class="rise"><svg class="ic" viewBox="0 0 24 24"><path d="M8.5 7.5L4 12l4.5 4.5M15.5 7.5L20 12l-4.5 4.5"/><path class="soft" d="M13.4 5.5l-2.8 13"/></svg></span></button>
-      <button class="tile " type="button" data-label="Mail" style="--i:5"><span class="rise"><svg class="ic" viewBox="0 0 24 24"><rect x="3" y="5.5" width="18" height="13" rx="2.6"/><path d="M4 7l8 6 8-6"/></svg></span></button>
-      <button class="tile " type="button" data-label="Music" style="--i:6"><span class="rise"><svg class="ic" viewBox="0 0 24 24"><path d="M9.5 17.5V6.2l10-2v11"/><circle class="softfill" cx="7" cy="17.5" r="2.6"/><circle class="softfill" cx="17" cy="15.2" r="2.6"/></svg></span></button>
-      <button class="tile " type="button" data-label="Photos" style="--i:7"><span class="rise"><svg class="ic" viewBox="0 0 24 24"><rect x="3" y="4.5" width="18" height="15" rx="3"/><path d="M3.5 16.5l5-5 4 4 2.5-2.5 5.5 5"/><circle class="softfill" cx="15.8" cy="9" r="1.7"/></svg></span></button>
-      <button class="tile " type="button" data-label="Notes" style="--i:8"><span class="rise"><svg class="ic" viewBox="0 0 24 24"><path d="M6.5 3.5h8l3 3v14h-11z"/><path class="soft" d="M9 10h6M9 13.5h6M9 17h3.5"/></svg></span></button>
-      <button class="tile " type="button" data-label="Calendar" style="--i:9"><span class="rise"><svg class="ic" viewBox="0 0 24 24"><rect x="3.5" y="5" width="17" height="15" rx="3"/><path class="soft" d="M3.8 9.5h16.4"/><path d="M8 3v3.5M16 3v3.5"/><circle class="fill" cx="12" cy="14.5" r="1.4"/></svg></span></button>
+      <button class="tile" type="button" data-label="Files" data-app="files" style="--i:1"><span class="rise"><svg viewBox="0 0 60 60"><defs><linearGradient id="ai-fb" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#f4f8ff"/><stop offset="1" stop-color="#d9e6ff"/></linearGradient><linearGradient id="ai-ff" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#8db6ff"/><stop offset="1" stop-color="#4f8cff"/></linearGradient></defs><rect width="60" height="60" rx="14" fill="url(#ai-fb)"/><path d="M12 19a4 4 0 0 1 4-4h8.5l4 4H44a4 4 0 0 1 4 4v18a4 4 0 0 1-4 4H16a4 4 0 0 1-4-4z" fill="#2f6cf0"/><path d="M12 25a4 4 0 0 1 4-4h28a4 4 0 0 1 4 4v16a4 4 0 0 1-4 4H16a4 4 0 0 1-4-4z" fill="url(#ai-ff)"/><path d="M14 23.5h32" stroke="#fff" stroke-opacity=".45" stroke-width="1.2" stroke-linecap="round"/></svg></span></button>
+      <button class="tile running" type="button" data-label="Browser" data-app="browser" style="--i:2"><span class="rise"><svg viewBox="0 0 60 60"><defs><linearGradient id="ai-bb" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffffff"/><stop offset="1" stop-color="#e9edf4"/></linearGradient><linearGradient id="ai-br" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#57c1ff"/><stop offset="1" stop-color="#1557ff"/></linearGradient></defs><rect width="60" height="60" rx="14" fill="url(#ai-bb)"/><circle cx="30" cy="30" r="19.5" fill="url(#ai-br)"/><circle cx="30" cy="30" r="16.6" fill="#fff"/><g stroke="#c4cad6" stroke-width="1.1" stroke-linecap="round"><path d="M30 15.6v2.6M30 41.8v2.6M15.6 30h2.6M41.8 30h2.6"/></g><g transform="rotate(40 30 30)"><path d="M30 16.5l3.6 13.5h-7.2z" fill="#ff4b4b"/><path d="M30 43.5l-3.6-13.5h7.2z" fill="#c9ced8"/></g><circle cx="30" cy="30" r="1.8" fill="#fff" stroke="#9aa1ad" stroke-width=".8"/></svg></span></button>
+      <button class="tile running" type="button" data-label="Terminal" data-app="terminal" style="--i:3"><span class="rise"><svg viewBox="0 0 60 60"><defs><linearGradient id="ai-tb" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#2c3038"/><stop offset="1" stop-color="#14161a"/></linearGradient></defs><rect width="60" height="60" rx="14" fill="url(#ai-tb)"/><rect x="1" y="1" width="58" height="58" rx="13" fill="none" stroke="#fff" stroke-opacity=".08"/><path d="M16 21l8 7-8 7" fill="none" stroke="#3ddc84" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"/><path d="M28 37h14" stroke="#e8eaee" stroke-width="3.4" stroke-linecap="round"/></svg></span></button>
+      <button class="tile running" type="button" data-label="Code" data-app="code" style="--i:4"><span class="rise"><svg viewBox="0 0 60 60"><defs><linearGradient id="ai-cb" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#4a5bff"/><stop offset="1" stop-color="#1b1f9e"/></linearGradient></defs><rect width="60" height="60" rx="14" fill="url(#ai-cb)"/><path d="M23 20l-9.5 10L23 40M37 20l9.5 10L37 40" fill="none" stroke="#fff" stroke-width="3.6" stroke-linecap="round" stroke-linejoin="round"/><path d="M33.5 16.5l-7 27" stroke="#fff" stroke-opacity=".55" stroke-width="3" stroke-linecap="round"/></svg></span></button>
+      <button class="tile" type="button" data-label="Mail" data-app="mail" style="--i:5"><span class="rise"><svg viewBox="0 0 60 60"><defs><linearGradient id="ai-mb" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#5cc8ff"/><stop offset="1" stop-color="#1a72ff"/></linearGradient></defs><rect width="60" height="60" rx="14" fill="url(#ai-mb)"/><rect x="12.5" y="18" width="35" height="25" rx="4.5" fill="#fff"/><path d="M14 20.5l16 12 16-12" fill="none" stroke="#6aa6ff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg></span></button>
+      <button class="tile" type="button" data-label="Music" data-app="music" style="--i:6"><span class="rise"><svg viewBox="0 0 60 60"><defs><linearGradient id="ai-mu" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ff6b8a"/><stop offset="1" stop-color="#ef1f55"/></linearGradient></defs><rect width="60" height="60" rx="14" fill="url(#ai-mu)"/><path d="M25 40V19.5l17-3.8v20" fill="none" stroke="#fff" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"/><circle cx="20.8" cy="40" r="4.6" fill="#fff"/><circle cx="37.8" cy="35.7" r="4.6" fill="#fff"/></svg></span></button>
+      <button class="tile" type="button" data-label="Photos" data-app="photos" style="--i:7"><span class="rise"><svg viewBox="0 0 60 60"><defs><linearGradient id="ai-ps" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#6cc0ff"/><stop offset="1" stop-color="#d7efff"/></linearGradient><clipPath id="ai-pc"><rect width="60" height="60" rx="14"/></clipPath></defs><g clip-path="url(#ai-pc)"><rect width="60" height="60" fill="url(#ai-ps)"/><circle cx="41" cy="19" r="6" fill="#ffd34d"/><path d="M-2 46l18-17 13 12 8-7 25 20v8H-2z" fill="#3cb68b"/><path d="M-2 52l22-12 16 9 9-4 17 9v8H-2z" fill="#25936c"/></g></svg></span></button>
+      <button class="tile" type="button" data-label="Notes" data-app="notes" style="--i:8"><span class="rise"><svg viewBox="0 0 60 60"><defs><clipPath id="ai-nc"><rect width="60" height="60" rx="14"/></clipPath></defs><g clip-path="url(#ai-nc)"><rect width="60" height="60" fill="#fffdf6"/><rect width="60" height="15" fill="#ffc933"/><path d="M0 15h60" stroke="#e8b21d" stroke-width="1"/><g stroke="#e3e5ea" stroke-width="1.6" stroke-linecap="round"><path d="M13 26h34M13 33h34M13 40h34M13 47h22"/></g></g></svg></span></button>
+      <button class="tile" type="button" data-label="Calendar" data-app="calendar" style="--i:9"><span class="rise"><svg viewBox="0 0 60 60"><rect width="60" height="60" rx="14" fill="#ffffff"/><text class="cal-day" x="30" y="20" text-anchor="middle" font-family="Inter, system-ui, sans-serif" font-weight="600" font-size="9" letter-spacing=".6" fill="#ff3b30">THU</text><text class="cal-date" x="30" y="45" text-anchor="middle" font-family="Inter, system-ui, sans-serif" font-weight="400" font-size="25" fill="#1c1c1e">12</text></svg></span></button>
     </div>
     <button class="glass chevron" id="chev" type="button" aria-expanded="false" aria-controls="dock" data-label="Apps">
       <svg viewBox="0 0 46 12" aria-hidden="true"><path d="M3 9.5L23 2.5l20 7" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
@@ -595,22 +1288,38 @@ svg.word { width: min(860px, 92vw); height: auto; overflow: visible; display: bl
       dot.setAttribute("class", "tittle dot");
       dot.setAttribute("rx", tittle.rx.toFixed(2)); dot.setAttribute("ry", tittle.ry.toFixed(2));
       dw.appendChild(dot); g.appendChild(dw);
-      let mill = null, spinner = null;
+      let mill = null;
       if (n === 0) {
+        // mill (lift, pop) > scaler (size, centre) > spinner (turn) > blades (crush)
         const s = (tittle.size * 3.0) / 100;
-        mill = document.createElementNS(NS, "g"); mill.setAttribute("class", "mill");
-        mill.style.translate = `0px ${(-tittle.size * 0.6).toFixed(2)}px`;
+        const lift = -tittle.size * 0.6;
+        const root = document.createElementNS(NS, "g");
         const scaler = document.createElementNS(NS, "g");
         scaler.setAttribute("transform", `scale(${s.toFixed(3)}) translate(-50 -50)`);
-        spinner = document.createElementNS(NS, "g");
-        spinner.innerHTML =
-          [0, 90, 180, 270].map(a => `<g transform="rotate(${a} 50 50)"><polygon class="sail" points="${BLADE}"/></g>`).join("") +
-          `<circle class="core" cx="50" cy="50" r="${(Math.max(tittle.rx, tittle.ry) / s).toFixed(2)}"/>`;
-        spinner.style.transformOrigin = "50px 50px";
-        scaler.appendChild(spinner); mill.appendChild(scaler); g.appendChild(mill);
+        const spinner = document.createElementNS(NS, "g");
+        const blades = [0, 90, 180, 270].map(a => {
+          const b = document.createElementNS(NS, "g");
+          b.dataset.a = a;
+          b.setAttribute("transform", `rotate(${a} 50 50)`);
+          b.innerHTML = `<polygon class="sail" points="${BLADE}"/>`;
+          spinner.appendChild(b);
+          return b;
+        });
+        const core = document.createElementNS(NS, "circle");
+        core.setAttribute("class", "core"); core.setAttribute("cx", 50); core.setAttribute("cy", 50);
+        core.setAttribute("r", (Math.max(tittle.rx, tittle.ry) / s).toFixed(2));
+        spinner.appendChild(core);
+        scaler.appendChild(spinner); root.appendChild(scaler); g.appendChild(root);
+        mill = {
+          root, spinner, blades, lift,
+          pose(k, rot = 0, liftK = 1) { root.setAttribute("transform", `translate(0 ${(lift * liftK).toFixed(2)}) rotate(${rot}) scale(${k})`); },
+          turn(deg) { spinner.setAttribute("transform", `rotate(${deg} 50 50)`); },
+          squeeze(k) { blades.forEach(b => b.setAttribute("transform", `rotate(${b.dataset.a} 50 50) translate(50 50) scale(${k}) translate(-50 -50)`)); },
+        };
+        mill.pose(0);
       }
       dotsG.appendChild(g);
-      dots.push({ dot, mill, spinner });
+      dots.push({ dot, mill });
     });
   }
 
@@ -645,12 +1354,18 @@ svg.word { width: min(860px, 92vw); height: auto; overflow: visible; display: bl
 
       const first = dots[0];
       if (!first || !first.mill) return outro(tDots + 400);
-      const tMill = tDots + 650;
-      later(() => { first.dot.classList.remove("on"); first.mill.classList.add("pop"); }, tMill);
-      later(() => { first.spinner.classList.add("spin"); }, tMill + 260);
-      const tBack = tMill + 260 + 3 * 300 + 120;
-      later(() => { first.spinner.classList.remove("spin"); first.mill.classList.add("crush"); }, tBack);
-      later(() => { first.mill.classList.remove("pop", "crush"); first.dot.classList.add("on"); }, tBack + 180);
+      const m = first.mill, tMill = tDots + 650;
+      // pop: the dot turns into the windmill in three hard frames
+      later(() => { first.dot.classList.remove("on"); m.pose(.6, -40); }, tMill);
+      later(() => m.pose(1.2, 8), tMill + 50);
+      later(() => m.pose(1, 0), tMill + 100);
+      // turn: 30 degree jumps, counter-clockwise, three quarters of a turn
+      const tTurn = tMill + 260;
+      for (let k = 1; k <= 9; k++) later(() => m.turn(-30 * k), tTurn + (k - 1) * 100);
+      // crush: the sails are pushed into the hub, which drops back onto the stem as the dot
+      const tBack = tTurn + 9 * 100 + 120;
+      [[.66, .66], [.33, .33], [0, 0]].forEach(([k, l], i) => later(() => { m.squeeze(k); m.pose(1, 0, l); }, tBack + i * 60));
+      later(() => { m.pose(0); m.squeeze(1); m.turn(0); first.dot.classList.add("on"); }, tBack + 180);
       outro(tBack + 180);
     }, 1000);
   }
@@ -909,7 +1624,7 @@ svg.word { width: min(860px, 92vw); height: auto; overflow: visible; display: bl
   }
 
   // ======================= home UI =======================
-  const bar = $("bar"), tip = $("tip"), pop = $("pop"), dock = $("dock"), chev = $("chev");
+  const bar = $("bar"), tip = $("tip"), dock = $("dock"), chev = $("chev");
 
   // a real spring curve, where the browser supports linear()
   (function springs() {
@@ -1013,7 +1728,7 @@ svg.word { width: min(860px, 92vw); height: auto; overflow: visible; display: bl
     tipFor = el;
     clearTimeout(tipT);
     tipT = setTimeout(() => {
-      if (tipFor !== el || (pop.classList.contains("on") && pop.dataset.for === el.dataset.pop)) return;
+      if (tipFor !== el) return;
       tip.textContent = el.dataset.label;
       const r = el.getBoundingClientRect(), below = r.top < innerHeight / 2;
       const tw = tip.offsetWidth;
@@ -1029,31 +1744,6 @@ svg.word { width: min(860px, 92vw); height: auto; overflow: visible; display: bl
     el.addEventListener("pointerleave", hideTip);
     el.addEventListener("pointerdown", hideTip);
   });
-
-  // ---------- popovers for Files, Widgets, Phone, Settings ----------
-  const POPS = {
-    files:    ["Files", "Your folders and files, opened right inside Windmill."],
-    widgets:  ["Widgets", "Small cards for the things you check all day."],
-    phone:    ["Phone", "Pair your Android phone to use this computer from anywhere."],
-    settings: ["Settings", "Wallpaper, which buttons show up, your cursor and more. Same as opening the Windmill app."],
-  };
-  function closePop() { pop.classList.remove("on"); pop.dataset.for = ""; }
-  document.querySelectorAll(".home [data-pop]").forEach(el => el.addEventListener("click", e => {
-    e.stopPropagation();
-    const key = el.dataset.pop;
-    if (pop.dataset.for === key && pop.classList.contains("on")) return closePop();
-    closeDock();
-    $("popTitle").textContent = POPS[key][0];
-    $("popText").textContent = POPS[key][1];
-    const r = el.getBoundingClientRect(), pw = 272;
-    const left = Math.max(12, Math.min(innerWidth - pw - 12, r.left + r.width / 2 - pw / 2));
-    pop.style.left = `${left}px`; pop.style.top = `${r.bottom + 14}px`;
-    pop.style.setProperty("--ox", `${r.left + r.width / 2 - left}px`);
-    pop.dataset.for = key;
-    pop.classList.remove("on"); void pop.offsetWidth;
-    pop.classList.add("on");
-    lens(pop);
-  }));
 
   // ---------- status: location, weather, volume, time ----------
   const tz = (Intl.DateTimeFormat().resolvedOptions().timeZone || "").split("/");
@@ -1081,6 +1771,8 @@ svg.word { width: min(860px, 92vw); height: auto; overflow: visible; display: bl
       $("wxIcon").innerHTML = WX[kind];
       $("wxText").textContent = `${t}°`;
       $("wxBtn").dataset.label = `${word}, ${t}° in ${pl.name}`;
+      wxNow = { kind, word, t, place: pl.name };
+      paintWidgets();
     } catch (e) { /* offline: the icon stays, no number */ }
   })();
 
@@ -1101,10 +1793,15 @@ svg.word { width: min(860px, 92vw); height: auto; overflow: visible; display: bl
   }, { passive: false });
   paintVol();
 
+  let wxNow = null, hour12 = null;
+  const timeOpts = () => (hour12 === null || hour12 === undefined ? { hour: "numeric", minute: "2-digit" } : { hour: "numeric", minute: "2-digit", hour12 });
   function paintTime() {
     const now = new Date();
+    document.querySelectorAll(".cal-day").forEach(e => e.textContent = now.toLocaleDateString("en", { weekday: "short" }).toUpperCase());
+    document.querySelectorAll(".cal-date").forEach(e => e.textContent = now.getDate());
+    if (typeof paintWidgets === "function") paintWidgets();
     $("dateText").textContent = now.toLocaleDateString(undefined, { weekday: "short", day: "numeric", month: "short" });
-    $("timeText").textContent = now.toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" });
+    $("timeText").textContent = now.toLocaleTimeString(undefined, timeOpts());
     $("timeBtn").dataset.label = now.toLocaleDateString(undefined, { weekday: "long", day: "numeric", month: "long", year: "numeric" });
   }
   paintTime();
@@ -1113,7 +1810,7 @@ svg.word { width: min(860px, 92vw); height: auto; overflow: visible; display: bl
   // ---------- the dock ----------
   const tiles = [...dock.querySelectorAll(".tile")];
   function openDock() {
-    closePop(); hideTip();
+    hideTip();
     dock.classList.add("open");
     chev.setAttribute("aria-expanded", "true");
     chev.dataset.label = "Hide apps";
@@ -1127,9 +1824,7 @@ svg.word { width: min(860px, 92vw); height: auto; overflow: visible; display: bl
   }
   chev.addEventListener("click", e => { e.stopPropagation(); dock.classList.contains("open") ? closeDock() : openDock(); });
   dock.addEventListener("click", e => e.stopPropagation());
-  pop.addEventListener("click", e => e.stopPropagation());
-  $("home").addEventListener("click", () => { closePop(); closeDock(); });
-  addEventListener("keydown", e => { if (e.key === "Escape") { closePop(); closeDock(); } });
+  $("home").addEventListener("click", e => { if (e.target.closest(".win, .search, .capsule")) return; closeDock(); });
 
   // magnify toward the pointer, like a Mac dock
   if (!reduce) {
@@ -1144,12 +1839,552 @@ svg.word { width: min(860px, 92vw); height: auto; overflow: visible; display: bl
   }
   // opening an app: it bounces, then shows it is running
   tiles.forEach(t => t.addEventListener("click", () => {
+    if (t.dataset.app === "windmill") return openWin("settings", t);
     if (t.classList.contains("running")) return;
     t.classList.remove("bounce"); void t.offsetWidth; t.classList.add("bounce");
     setTimeout(() => { t.classList.remove("bounce"); t.classList.add("running"); }, 1800);
   }));
 
+  // ======================= preferences =======================
+  const homeEl = $("home");
+  const PREF_KEY = "windmill-preview";
+  let prefs = { wall: "dots", cursor: "system", bar: {}, hour12: null, theme: "light", adaptive: false, lang: null };
+  try { prefs = Object.assign(prefs, JSON.parse(localStorage.getItem(PREF_KEY) || "{}")); } catch (e) {}
+  const savePrefs = () => { try { localStorage.setItem(PREF_KEY, JSON.stringify(prefs)); } catch (e) {} };
+
+  function setWall(w, persist = true) {
+    document.querySelectorAll("#wall i").forEach(i => i.classList.toggle("on", i.dataset.w === w));
+    ["dots", "plain", "sky", "deep"].forEach(k => homeEl.classList.toggle("w-" + k, k === w));
+    document.querySelectorAll(".wcard").forEach(c => { c.classList.toggle("on", c.dataset.wall === w); c.setAttribute("aria-pressed", c.dataset.wall === w); });
+    prefs.wall = w; if (persist) savePrefs();
+  }
+  function setCursor(c, persist = true) {
+    document.documentElement.classList.remove("cur-windmill", "cur-dot");
+    if (c !== "system") document.documentElement.classList.add("cur-" + c);
+    document.querySelectorAll(".ccard").forEach(b => { b.classList.toggle("on", b.dataset.cursor === c); b.setAttribute("aria-pressed", b.dataset.cursor === c); });
+    prefs.cursor = c; if (persist) savePrefs();
+  }
+  function setBarItem(key, on, persist = true, instant = false) {
+    const el = document.querySelector(`.bar [data-bar="${key}"]`);
+    const sw = document.querySelector(`.sw[data-toggle="${key}"]`);
+    if (sw) sw.setAttribute("aria-checked", String(on));
+    prefs.bar[key] = on; if (persist) savePrefs();
+    if (!el) return;
+    if (instant) { el.classList.toggle("gone", !on); return; }
+    if (on) {
+      el.classList.remove("gone");
+      el.style.transition = "none"; el.style.opacity = 0; el.style.scale = .5;
+      requestAnimationFrame(() => requestAnimationFrame(() => {
+        el.style.transition = "opacity .25s ease, scale .55s var(--spring)"; el.style.opacity = ""; el.style.scale = "";
+      }));
+    } else {
+      el.style.transition = "opacity .18s ease, scale .25s ease"; el.style.opacity = 0; el.style.scale = .5;
+      setTimeout(() => { el.classList.add("gone"); el.style.opacity = ""; el.style.scale = ""; }, 200);
+    }
+    setTimeout(lensAll, 320);
+  }
+  document.querySelectorAll(".wcard").forEach(c => c.addEventListener("click", () => setWall(c.dataset.wall)));
+  document.querySelectorAll(".ccard").forEach(c => c.addEventListener("click", () => setCursor(c.dataset.cursor)));
+  document.querySelectorAll(".sw[data-toggle]").forEach(sw => sw.addEventListener("click", () => setBarItem(sw.dataset.toggle, sw.getAttribute("aria-checked") !== "true")));
+  setWall(prefs.wall, false);
+  setCursor(prefs.cursor, false);
+  Object.entries(prefs.bar).forEach(([k, v]) => setBarItem(k, v, false, true));
+
+  // ======================= windows =======================
+  const scrim = $("scrim");
+  const windmillTile = dock.querySelector('[data-app="windmill"]');
+  let openWinEl = null;
+  function openWin(name, fromEl, section) {
+    const win = $("win-" + name);
+    if (!win) return;
+    if (section) showSection(section);
+    if (openWinEl === win) return;
+    if (openWinEl) closeWin(openWinEl);
+    closeDock(); closeSearch(); hideTip();
+    win.style.setProperty("--ww", (win.dataset.w || 720) + "px");
+    win.style.setProperty("--wh", (win.dataset.h || 460) + "px");
+    const w = win.offsetWidth, h = win.offsetHeight;
+    const left = (innerWidth - w) / 2, top = (innerHeight - h) / 2;
+    if (fromEl) {
+      const r = fromEl.getBoundingClientRect();
+      win.style.setProperty("--ox", `${(r.left + r.width / 2 - left).toFixed(1)}px`);
+      win.style.setProperty("--oy", `${(r.top + r.height / 2 - top).toFixed(1)}px`);
+    } else {
+      win.style.setProperty("--ox", "50%"); win.style.setProperty("--oy", "50%");
+    }
+    void win.offsetWidth;
+    win.classList.add("open");
+    win.setAttribute("aria-hidden", "false");
+    openWinEl = win;
+    if (name === "settings") windmillTile.classList.add("running");
+    if (name === "widgets") paintWidgets();
+    if (name === "phone") newPairCode();
+    setTimeout(() => { lens(win); win.querySelector(".x").focus({ preventScroll: true }); }, 80);
+  }
+  function closeWin(win = openWinEl) {
+    if (!win) return;
+    win.classList.remove("open");
+    win.setAttribute("aria-hidden", "true");
+    if (win.id === "win-settings") windmillTile.classList.remove("running");
+    if (openWinEl === win) openWinEl = null;
+  }
+  document.querySelectorAll(".win .x").forEach(x => x.addEventListener("click", e => { e.stopPropagation(); closeWin(x.closest(".win")); }));
+  document.querySelectorAll(".win").forEach(w => w.addEventListener("click", e => e.stopPropagation()));
+  document.querySelectorAll(".home [data-open]").forEach(b => b.addEventListener("click", e => {
+    e.stopPropagation();
+    const w = $("win-" + b.dataset.open);
+    openWinEl === w ? closeWin() : openWin(b.dataset.open, b);
+  }));
+
+  function showSection(sec) {
+    document.querySelectorAll("#win-settings .sec").forEach(b => b.classList.toggle("on", b.dataset.sec === sec));
+    document.querySelectorAll("#win-settings .panel").forEach(p => p.classList.toggle("on", p.dataset.panel === sec));
+  }
+  document.querySelectorAll("#win-settings .sec").forEach(b => b.addEventListener("click", () => showSection(b.dataset.sec)));
+
+  // ---------- files ----------
+  const FILE_KIND = { pptx: "Presentation", json: "JSON file", html: "Web page", pdf: "PDF document", svg: "Image", png: "Image", csv: "Spreadsheet", txt: "Text file" };
+  function fileIcon(ext) {
+    const glyph = {
+      pptx: '<rect class="soft" x="9" y="12" width="6" height="4.2" rx=".8"/>',
+      json: '<path class="soft" d="M10.4 11.3c-.9 0-1.1.6-1.1 1.4s-.2 1.3-1 1.3c.8 0 1 .5 1 1.3s.2 1.4 1.1 1.4M13.6 11.3c.9 0 1.1.6 1.1 1.4s.2 1.3 1 1.3c-.8 0-1 .5-1 1.3s-.2 1.4-1.1 1.4"/>',
+      html: '<path class="soft" d="M10.2 12l-1.8 2 1.8 2M13.8 12l1.8 2-1.8 2"/>',
+      pdf: '<path class="soft" d="M9.5 17v-2.4M12 17v-4.6M14.5 17v-3.2"/>',
+      svg: '<path class="soft" d="M8.6 17l2.4-2.5 1.9 1.9 1.4-1.4 1.6 2"/>',
+      png: '<path class="soft" d="M8.6 17l2.4-2.5 1.9 1.9 1.4-1.4 1.6 2"/>',
+      csv: '<path class="soft" d="M8.8 12.2h6.4M8.8 14.6h6.4M8.8 17h6.4M12 12.2V17"/>',
+    }[ext] || '<path class="soft" d="M9 12.2h6M9 14.6h6M9 17h4"/>';
+    return `<svg class="ic" viewBox="0 0 24 24"><path d="M6.5 3.5h7.5l4 4v13h-11.5z"/><path d="M14 3.5v4h4"/>${glyph}</svg>`;
+  }
+  const TREE = [
+    ["Brand assets", "#4d8dff", "#e7f0ff", ["Logo.svg", "Wordmark.png", "Colors.json", "Guidelines.pdf"]],
+    ["Finance", "#2fbf78", "#e2f7ec", ["Budget.csv", "Invoices.csv", "Payroll.csv", "Q1 report.pdf", "Q2 report.pdf", "Q3 report.pdf", "Forecast.pdf", "Notes.txt"]],
+    ["Campaigns", "#ff6fa8", "#ffe9f2", ["Launch deck.pptx", "Leads.json", "Newsletter.html", "Results.pdf"], true],
+    ["Research", "#ff9f2e", "#fff1df", ["Interviews.txt", "Survey.json", "Findings.pdf"]],
+  ];
+  const tree = $("tree");
+  TREE.forEach(([name, color, light, files, open]) => {
+    const fold = document.createElement("div");
+    fold.className = "fold" + (open ? " open" : "");
+    fold.innerHTML =
+      `<button class="frow" type="button" aria-expanded="${!!open}"><svg class="chev" viewBox="0 0 12 12"><path d="M4.5 2.5L8 6l-3.5 3.5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>` +
+      `<svg class="fic" viewBox="0 0 24 24"><path d="M3.5 7.5a2 2 0 0 1 2-2h3.6l2 2.2h7.4a2 2 0 0 1 2 2v7.8a2 2 0 0 1-2 2h-13a2 2 0 0 1-2-2z" fill="${light}" stroke="${color}" stroke-width="1.6" stroke-linejoin="round"/></svg>` +
+      `<span></span><em>${files.length}</em></button><div class="kids"><div class="kin"></div></div>`;
+    fold.querySelector("span").textContent = name;
+    const kin = fold.querySelector(".kin");
+    files.forEach(f => {
+      const ext = f.split(".").pop();
+      const b = document.createElement("button");
+      b.className = "krow"; b.type = "button"; b.dataset.name = f; b.dataset.ext = ext;
+      b.innerHTML = fileIcon(ext) + "<span></span>";
+      b.querySelector("span").textContent = f;
+      kin.appendChild(b);
+    });
+    tree.appendChild(fold);
+  });
+  tree.addEventListener("click", e => {
+    const fr = e.target.closest(".frow");
+    if (fr) { const f = fr.parentElement; f.classList.toggle("open"); fr.setAttribute("aria-expanded", f.classList.contains("open")); return; }
+    const k = e.target.closest(".krow");
+    if (k) selectFile(k);
+  });
+  function selectFile(k) {
+    tree.querySelectorAll(".krow").forEach(o => o.classList.toggle("on", o === k));
+    const big = $("fBig");
+    big.innerHTML = fileIcon(k.dataset.ext);
+    big.style.animation = "none"; void big.offsetWidth; big.style.animation = "";
+    $("fName").textContent = k.dataset.name;
+    $("fMeta").textContent = `${FILE_KIND[k.dataset.ext] || "File"} · Example`;
+  }
+  selectFile(tree.querySelector('[data-name="Leads.json"]'));
+
+  // ---------- phone ----------
+  function newPairCode() {
+    const d = $("pairCode");
+    d.classList.add("swap");
+    setTimeout(() => {
+      d.textContent = String(Math.floor(100000 + Math.random() * 900000)).replace(/(\d{3})(\d{3})/, "$1 $2");
+      d.classList.remove("swap");
+    }, 180);
+  }
+  $("newCode").addEventListener("click", newPairCode);
+
+  // ======================= Windmill Search =======================
+  const search = $("search"), q = $("q"), sres = $("sres");
+  const isMac = /Mac|iPhone|iPad/.test(navigator.platform || navigator.userAgent);
+  $("skey").textContent = isMac ? "⌘ K" : "Ctrl K";
+  $("searchBtn").dataset.label = `Windmill Search  ${isMac ? "⌘K" : "Ctrl K"}`;
+  let homeReady = false;
+  const appIcon = t => t.querySelector("svg").outerHTML;
+  const barIcon = key => { const b = document.querySelector(`.bar [data-open="${key}"] svg`); return b ? b.outerHTML : ""; };
+  const swatch = w => `<span class="wprev wp-${w}"></span>`;
+  const INDEX = [
+    ...tiles.map(t => ({
+      group: "Apps", label: t.dataset.label, hint: t.dataset.app === "windmill" ? "Opens Settings" : "App",
+      icon: appIcon(t), suggest: ["windmill", "browser", "files"].includes(t.dataset.app),
+      run: () => t.click(),
+    })),
+    { group: "Windmill", label: "Files", hint: "Open", icon: barIcon("files"), run: () => openWin("files", $("searchBtn")) },
+    { group: "Windmill", label: "Widgets", hint: "Open", icon: barIcon("widgets"), suggest: true, run: () => openWin("widgets", $("searchBtn")) },
+    { group: "Windmill", label: "Phone", hint: "Pair your phone", icon: barIcon("phone"), run: () => openWin("phone", $("searchBtn")) },
+    { group: "Settings", label: "Settings", hint: "Open", icon: barIcon("settings"), keys: "preferences options", run: () => openWin("settings", $("searchBtn")) },
+    { group: "Settings", label: "Wallpaper: Dots", keys: "background", icon: swatch("dots"), run: () => setWall("dots") },
+    { group: "Settings", label: "Wallpaper: Sky", keys: "background", icon: swatch("sky"), suggest: true, run: () => setWall("sky") },
+    { group: "Settings", label: "Wallpaper: Deep blue", keys: "background", icon: swatch("deep"), run: () => setWall("deep") },
+    { group: "Settings", label: "Wallpaper: None", keys: "background plain white", icon: swatch("plain"), run: () => setWall("plain") },
+    { group: "Settings", label: "Menu bar", hint: "Choose buttons", keys: "top bar buttons", icon: barIcon("settings"), run: () => openWin("settings", $("searchBtn"), "menubar") },
+    { group: "Settings", label: "Cursor: Windmill", keys: "pointer mouse", icon: barIcon("settings"), run: () => setCursor("windmill") },
+    { group: "Settings", label: "Cursor: Dot", keys: "pointer mouse", icon: barIcon("settings"), run: () => setCursor("dot") },
+    { group: "Settings", label: "Cursor: System", keys: "pointer mouse default", icon: barIcon("settings"), run: () => setCursor("system") },
+  ];
+  let results = [], sel = 0;
+  function renderSearch() {
+    const term = q.value.trim().toLowerCase();
+    if (!term) results = INDEX.filter(r => r.suggest);
+    else results = INDEX.map(r => {
+      const l = r.label.toLowerCase(), k = (r.keys || "").toLowerCase();
+      const score = l.startsWith(term) ? 0 : l.split(/[\s:]+/).some(w => w.startsWith(term)) ? 1 : (l.includes(term) || k.includes(term)) ? 2 : 9;
+      return [score, r];
+    }).filter(([sc]) => sc < 9).sort((a, b) => a[0] - b[0]).map(([, r]) => r).slice(0, 9);
+    sel = 0;
+    sres.innerHTML = "";
+    if (!results.length) {
+      const e = document.createElement("div"); e.className = "sempty";
+      e.textContent = `Nothing matches “${q.value.trim()}” yet.`;
+      sres.appendChild(e); return;
+    }
+    let lastGroup = "";
+    results.forEach((r, i) => {
+      const g = term ? r.group : "Suggested";
+      if (g !== lastGroup) { const h = document.createElement("div"); h.className = "sgroup"; h.textContent = g; sres.appendChild(h); lastGroup = g; }
+      const b = document.createElement("button");
+      b.type = "button"; b.className = "row" + (i === 0 ? " on" : ""); b.dataset.i = i;
+      b.setAttribute("role", "option"); b.setAttribute("aria-selected", i === 0);
+      b.innerHTML = `<span class="ri">${r.icon || ""}</span><span class="rl"></span><span class="rg"></span>`;
+      b.querySelector(".rl").textContent = r.label;
+      b.querySelector(".rg").textContent = r.hint || r.group;
+      sres.appendChild(b);
+    });
+  }
+  function paintSel() {
+    sres.querySelectorAll(".row").forEach((x, i) => { x.classList.toggle("on", i === sel); x.setAttribute("aria-selected", i === sel); });
+    const on = sres.querySelector(".row.on"); if (on) on.scrollIntoView({ block: "nearest" });
+  }
+  function runSel(i = sel) { const r = results[i]; if (!r) return; closeSearch(); setTimeout(r.run, 140); }
+  q.addEventListener("input", renderSearch);
+  q.addEventListener("keydown", e => {
+    if (e.key === "ArrowDown") { e.preventDefault(); if (results.length) { sel = (sel + 1) % results.length; paintSel(); } }
+    else if (e.key === "ArrowUp") { e.preventDefault(); if (results.length) { sel = (sel - 1 + results.length) % results.length; paintSel(); } }
+    else if (e.key === "Enter") { e.preventDefault(); runSel(); }
+  });
+  sres.addEventListener("pointermove", e => { const r = e.target.closest(".row"); if (r && +r.dataset.i !== sel) { sel = +r.dataset.i; paintSel(); } });
+  sres.addEventListener("click", e => { const r = e.target.closest(".row"); if (r) runSel(+r.dataset.i); });
+  function openSearch() {
+    if (!homeReady) return;
+    closeDock(); hideTip();
+    q.value = ""; renderSearch();
+    scrim.classList.add("on"); search.classList.add("on"); search.setAttribute("aria-hidden", "false");
+    setTimeout(() => q.focus({ preventScroll: true }), 30);
+    setTimeout(() => lens(search), 90);
+  }
+  function closeSearch() {
+    if (!search.classList.contains("on")) return;
+    search.classList.remove("on"); search.setAttribute("aria-hidden", "true");
+    scrim.classList.remove("on"); q.blur();
+  }
+  scrim.addEventListener("click", e => { e.stopPropagation(); closeSearch(); });
+  search.addEventListener("click", e => e.stopPropagation());
+  $("searchBtn").addEventListener("click", e => { e.stopPropagation(); search.classList.contains("on") ? closeSearch() : openSearch(); });
+  addEventListener("keydown", e => {
+    if ((e.ctrlKey || e.metaKey) && (e.key === "k" || e.key === "K")) {
+      e.preventDefault();
+      search.classList.contains("on") ? closeSearch() : openSearch();
+      return;
+    }
+    if (e.key === "Escape") {
+      if (search.classList.contains("on")) closeSearch();
+      else if (openWinEl) closeWin();
+      else closeDock();
+    }
+  });
+
+  // ======================= widgets =======================
+  function paintWidgets() {
+    const g = id => document.getElementById(id);
+    if (!g("wgTime")) return;
+    const now = new Date();
+    g("wgTime").textContent = now.toLocaleTimeString(undefined, timeOpts());
+    g("wgDate").textContent = now.toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric" });
+    if (wxNow) {
+      g("wgWxIcon").innerHTML = WX[wxNow.kind];
+      g("wgWxT").textContent = `${wxNow.t}°`;
+      g("wgWxP").textContent = `${wxNow.word} · ${wxNow.place}`;
+    } else {
+      g("wgWxIcon").innerHTML = WX.part;
+      g("wgWxT").textContent = "—";
+      g("wgWxP").textContent = "Shows up when you're online.";
+    }
+    const y = now.getFullYear(), m = now.getMonth(), key = `${y}-${m}-${now.getDate()}`;
+    g("wgMonth").textContent = now.toLocaleDateString(undefined, { month: "long", year: "numeric" });
+    if (g("wgCal").dataset.k !== key) {
+      const first = new Date(y, m, 1).getDay(), days = new Date(y, m + 1, 0).getDate();
+      let html = [...Array(7)].map((_, i) => `<span class="h">${new Date(2024, 0, 7 + i).toLocaleDateString(undefined, { weekday: "narrow" })}</span>`).join("");
+      for (let i = 0; i < first; i++) html += '<span class="m">0</span>';
+      for (let d = 1; d <= days; d++) html += `<span${d === now.getDate() ? ' class="t"' : ""}>${d}</span>`;
+      g("wgCal").innerHTML = html; g("wgCal").dataset.k = key;
+    }
+    if (!g("wgBat").dataset.done) {
+      g("wgBat").dataset.done = "1";
+      if (navigator.getBattery) {
+        navigator.getBattery().then(b => {
+          const upd = () => {
+            g("wgBat").textContent = `${Math.round(b.level * 100)}%`;
+            g("wgBatBar").style.width = `${b.level * 100}%`;
+            g("wgBatNote").textContent = b.charging ? "Charging" : "On battery";
+          };
+          upd(); b.addEventListener("levelchange", upd); b.addEventListener("chargingchange", upd);
+        }).catch(() => { g("wgBatNote").textContent = "Battery info isn't available here."; });
+      } else {
+        g("wgBatNote").textContent = "This browser doesn't share battery info.";
+      }
+    }
+  }
+  // ======================= theme & icons =======================
+  function setTheme(t) { document.documentElement.classList.toggle("dark", t === "dark"); }
+  function setAdaptive(on) { document.documentElement.classList.toggle("adaptive", !!on); }
+
+  // ======================= setup =======================
+  const setupEl = $("setup"), wtrack = $("wtrack");
+  const COUNTRIES = [
+    ["AR", "Argentina"], ["AU", "Australia"], ["AT", "Austria"], ["BD", "Bangladesh"], ["BE", "Belgium"], ["BR", "Brazil"],
+    ["CA", "Canada"], ["CL", "Chile"], ["CN", "China"], ["CO", "Colombia"], ["CZ", "Czechia"], ["DK", "Denmark"],
+    ["EG", "Egypt"], ["FI", "Finland"], ["FR", "France"], ["DE", "Germany"], ["GR", "Greece"], ["HK", "Hong Kong"],
+    ["HU", "Hungary"], ["IN", "India"], ["ID", "Indonesia"], ["IE", "Ireland"], ["IL", "Israel"], ["IT", "Italy"],
+    ["JP", "Japan"], ["KE", "Kenya"], ["MY", "Malaysia"], ["MX", "Mexico"], ["MA", "Morocco"], ["NL", "Netherlands"],
+    ["NZ", "New Zealand"], ["NG", "Nigeria"], ["NO", "Norway"], ["PK", "Pakistan"], ["PE", "Peru"], ["PH", "Philippines"],
+    ["PL", "Poland"], ["PT", "Portugal"], ["RO", "Romania"], ["SA", "Saudi Arabia"], ["SG", "Singapore"], ["ZA", "South Africa"],
+    ["KR", "South Korea"], ["ES", "Spain"], ["SE", "Sweden"], ["CH", "Switzerland"], ["TW", "Taiwan"], ["TH", "Thailand"],
+    ["TR", "Turkey"], ["UA", "Ukraine"], ["AE", "United Arab Emirates"], ["GB", "United Kingdom"], ["US", "United States"], ["VN", "Vietnam"],
+  ];
+  const LANGS = [
+    ["en", "English"], ["es", "Español"], ["pt", "Português"], ["fr", "Français"], ["de", "Deutsch"], ["it", "Italiano"],
+    ["nl", "Nederlands"], ["sv", "Svenska"], ["no", "Norsk"], ["da", "Dansk"], ["fi", "Suomi"], ["pl", "Polski"],
+    ["cs", "Čeština"], ["hu", "Magyar"], ["ro", "Română"], ["el", "Ελληνικά"], ["tr", "Türkçe"], ["ru", "Русский"],
+    ["uk", "Українська"], ["ar", "العربية"], ["he", "עברית"], ["hi", "हिन्दी"], ["bn", "বাংলা"], ["th", "ไทย"],
+    ["vi", "Tiếng Việt"], ["id", "Bahasa Indonesia"], ["fil", "Filipino"], ["zh", "中文"], ["ja", "日本語"], ["ko", "한국어"],
+  ];
+  const STATES = {
+    US: ["Alabama", "Alaska", "Arizona", "Arkansas", "California", "Colorado", "Connecticut", "Delaware", "District of Columbia", "Florida", "Georgia", "Hawaii", "Idaho", "Illinois", "Indiana", "Iowa", "Kansas", "Kentucky", "Louisiana", "Maine", "Maryland", "Massachusetts", "Michigan", "Minnesota", "Mississippi", "Missouri", "Montana", "Nebraska", "Nevada", "New Hampshire", "New Jersey", "New Mexico", "New York", "North Carolina", "North Dakota", "Ohio", "Oklahoma", "Oregon", "Pennsylvania", "Rhode Island", "South Carolina", "South Dakota", "Tennessee", "Texas", "Utah", "Vermont", "Virginia", "Washington", "West Virginia", "Wisconsin", "Wyoming"],
+    BR: ["Acre", "Alagoas", "Amapá", "Amazonas", "Bahia", "Ceará", "Distrito Federal", "Espírito Santo", "Goiás", "Maranhão", "Mato Grosso", "Mato Grosso do Sul", "Minas Gerais", "Pará", "Paraíba", "Paraná", "Pernambuco", "Piauí", "Rio de Janeiro", "Rio Grande do Norte", "Rio Grande do Sul", "Rondônia", "Roraima", "Santa Catarina", "São Paulo", "Sergipe", "Tocantins"],
+    CA: ["Alberta", "British Columbia", "Manitoba", "New Brunswick", "Newfoundland and Labrador", "Northwest Territories", "Nova Scotia", "Nunavut", "Ontario", "Prince Edward Island", "Quebec", "Saskatchewan", "Yukon"],
+    AU: ["Australian Capital Territory", "New South Wales", "Northern Territory", "Queensland", "South Australia", "Tasmania", "Victoria", "Western Australia"],
+    IN: ["Andhra Pradesh", "Arunachal Pradesh", "Assam", "Bihar", "Chhattisgarh", "Delhi", "Goa", "Gujarat", "Haryana", "Himachal Pradesh", "Jharkhand", "Karnataka", "Kerala", "Madhya Pradesh", "Maharashtra", "Manipur", "Meghalaya", "Mizoram", "Nagaland", "Odisha", "Punjab", "Rajasthan", "Sikkim", "Tamil Nadu", "Telangana", "Tripura", "Uttar Pradesh", "Uttarakhand", "West Bengal"],
+    MX: ["Aguascalientes", "Baja California", "Baja California Sur", "Campeche", "Chiapas", "Chihuahua", "Ciudad de México", "Coahuila", "Colima", "Durango", "Guanajuato", "Guerrero", "Hidalgo", "Jalisco", "México", "Michoacán", "Morelos", "Nayarit", "Nuevo León", "Oaxaca", "Puebla", "Querétaro", "Quintana Roo", "San Luis Potosí", "Sinaloa", "Sonora", "Tabasco", "Tamaulipas", "Tlaxcala", "Veracruz", "Yucatán", "Zacatecas"],
+    DE: ["Baden-Württemberg", "Bayern", "Berlin", "Brandenburg", "Bremen", "Hamburg", "Hessen", "Mecklenburg-Vorpommern", "Niedersachsen", "Nordrhein-Westfalen", "Rheinland-Pfalz", "Saarland", "Sachsen", "Sachsen-Anhalt", "Schleswig-Holstein", "Thüringen"],
+  };
+  const STATE_WORD = { CA: "province or territory", AU: "state or territory" };
+  const WELCOME = {
+    en: "Welcome", es: "Bienvenido", pt: "Bem-vindo", fr: "Bienvenue", de: "Willkommen", it: "Benvenuto", nl: "Welkom",
+    sv: "Välkommen", no: "Velkommen", da: "Velkommen", fi: "Tervetuloa", pl: "Witaj", cs: "Vítejte", hu: "Üdvözöljük",
+    ro: "Bun venit", el: "Καλώς ήρθες", tr: "Hoş geldin", ru: "Добро пожаловать", uk: "Ласкаво просимо", ar: "أهلاً بك",
+    he: "ברוך הבא", hi: "स्वागत है", bn: "স্বাগতম", th: "ยินดีต้อนรับ", vi: "Chào mừng", id: "Selamat datang",
+    fil: "Maligayang pagdating", zh: "欢迎", ja: "ようこそ", ko: "환영합니다",
+  };
+
+  const guessCountry = () => {
+    try { const r = new Intl.Locale(navigator.language || "en-US").maximize().region; if (COUNTRIES.some(c => c[0] === r)) return r; } catch (e) {}
+    return "US";
+  };
+  const guessLang = () => { const b = (navigator.language || "en").split("-")[0]; return LANGS.some(l => l[0] === b) ? b : "en"; };
+  const sysHour12 = new Intl.DateTimeFormat(undefined, { hour: "numeric" }).resolvedOptions().hour12 !== false;
+  const sysDark = matchMedia("(prefers-color-scheme: dark)").matches;
+  const answers = {};
+
+  function stepList() {
+    const list = [
+      { key: "country", title: "Where are you?", sub: "Pick your country or region.", items: COUNTRIES.map(([v, l]) => ({ v, l })), def: prefs.country || guessCountry() },
+      { key: "lang", title: "Which language?", sub: "The one Windmill should use with you.", items: LANGS.map(([v, l]) => ({ v, l })), def: prefs.lang || guessLang() },
+    ];
+    const st = STATES[answers.country];
+    if (st) list.push({
+      key: "state", title: `Which ${STATE_WORD[answers.country] || "state"}?`, sub: "So the time, weather and suggestions fit where you are.",
+      items: st.map(x => ({ v: x, l: x })), def: (prefs.country === answers.country && prefs.state) || st[0],
+    });
+    list.push(
+      { key: "hour12", title: "How do you read the time?", sub: "You can change this later.", items: [{ v: true, l: "12-hour" }, { v: false, l: "24-hour" }], def: prefs.hour12 ?? sysHour12, preview: "clock" },
+      { key: "theme", title: "Light or dark?", sub: "Windmill follows this everywhere.", items: [{ v: "light", l: "Light" }, { v: "dark", l: "Dark" }], def: prefs.theme || (sysDark ? "dark" : "light"), preview: "mock" },
+      { key: "wall", title: "Start with a wallpaper?", sub: "Or keep it clean. You can switch any time in Settings.", items: [{ v: "dots", l: "Dots" }, { v: "sky", l: "Sky" }, { v: "deep", l: "Deep blue" }, { v: "plain", l: "No wallpaper" }], def: prefs.wall || "dots", preview: "mock" },
+      { key: "adaptive", title: "Adaptive icons?", sub: "App icons that tint themselves to match your theme.", items: [{ v: true, l: "On" }, { v: false, l: "Off" }], def: prefs.adaptive ?? false, preview: "icons" },
+    );
+    return list;
+  }
+
+  // ---------- the wheel: native scrolling, drawn as a drum ----------
+  const ROW = 50, STEP = .34, RAD = ROW / STEP;
+  let witems = [], wstep = null, wIdx = 0, wRaf = 0, wSettle = 0;
+  function paintWheel() {
+    wRaf = 0;
+    const st = wtrack.scrollTop;
+    witems.forEach((el, i) => {
+      const d = (i * ROW - st) / ROW, th = d * STEP, a = Math.abs(d);
+      if (Math.abs(th) > 1.4) { el.style.visibility = "hidden"; return; }
+      el.style.visibility = "";
+      const dy = RAD * Math.sin(th) - d * ROW, dz = RAD * Math.cos(th) - RAD;
+      el.style.transform = `translate3d(0, ${dy.toFixed(2)}px, ${dz.toFixed(2)}px) rotateX(${(-th).toFixed(4)}rad)`;
+      el.style.opacity = Math.max(0, 1 - a * .24).toFixed(3);
+      el.style.filter = a > .55 ? `blur(${Math.min(3.4, (a - .55) * 1.2).toFixed(2)}px)` : "";
+      el.classList.toggle("on", a < .5);
+      el.setAttribute("aria-selected", a < .5);
+    });
+  }
+  function buildWheel(step) {
+    wstep = step;
+    wtrack.innerHTML = "";
+    witems = step.items.map((it, i) => {
+      const d = document.createElement("div");
+      d.className = "wi"; d.textContent = it.l; d.dataset.i = i; d.setAttribute("role", "option");
+      wtrack.appendChild(d);
+      return d;
+    });
+    const pad = Math.max(0, (wtrack.clientHeight - ROW) / 2);
+    wtrack.style.paddingTop = wtrack.style.paddingBottom = `${pad}px`;
+    const cur = step.key in answers ? answers[step.key] : step.def;
+    wIdx = Math.max(0, step.items.findIndex(it => it.v === cur));
+    wtrack.scrollTop = wIdx * ROW;
+    wtrack.setAttribute("aria-label", step.title);
+    paintWheel();
+    commit();
+  }
+  function commit() {
+    if (!wstep) return;
+    wIdx = Math.max(0, Math.min(witems.length - 1, Math.round(wtrack.scrollTop / ROW)));
+    const v = wstep.items[wIdx].v;
+    answers[wstep.key] = v;
+    if (wstep.key === "theme") setTheme(v);
+    if (wstep.key === "country") { steps = stepList(); $("snum").textContent = `${si + 1} of ${steps.length}`; paintProgress(); }
+    paintPreview();
+  }
+  wtrack.addEventListener("scroll", () => {
+    if (!wRaf) wRaf = requestAnimationFrame(paintWheel);
+    clearTimeout(wSettle); wSettle = setTimeout(commit, 90);
+  }, { passive: true });
+  wtrack.addEventListener("click", e => {
+    const it = e.target.closest(".wi"); if (!it) return;
+    wtrack.scrollTo({ top: +it.dataset.i * ROW, behavior: reduce ? "auto" : "smooth" });
+  });
+  wtrack.addEventListener("keydown", e => {
+    const go = n => { e.preventDefault(); wtrack.scrollTo({ top: Math.max(0, Math.min(witems.length - 1, n)) * ROW, behavior: reduce ? "auto" : "smooth" }); };
+    if (e.key === "ArrowDown") go(wIdx + 1);
+    else if (e.key === "ArrowUp") go(wIdx - 1);
+    else if (e.key === "Home") go(0);
+    else if (e.key === "End") go(witems.length - 1);
+    else if (e.key === "PageDown") go(wIdx + 5);
+    else if (e.key === "PageUp") go(wIdx - 5);
+  });
+  // drag with the mouse, like a real wheel
+  let drag = null;
+  wtrack.addEventListener("pointerdown", e => {
+    if (e.pointerType !== "mouse" || e.button !== 0) return;
+    drag = { y: e.clientY, top: wtrack.scrollTop, moved: false };
+    wtrack.style.scrollSnapType = "none"; wtrack.style.cursor = "grabbing";
+  });
+  addEventListener("pointermove", e => {
+    if (!drag) return;
+    const dy = e.clientY - drag.y;
+    if (Math.abs(dy) > 3) drag.moved = true;
+    wtrack.scrollTop = drag.top - dy;
+  });
+  addEventListener("pointerup", () => {
+    if (!drag) return;
+    const moved = drag.moved; drag = null;
+    wtrack.style.cursor = "";
+    const target = Math.round(wtrack.scrollTop / ROW) * ROW;
+    wtrack.scrollTo({ top: target, behavior: reduce ? "auto" : "smooth" });
+    setTimeout(() => { wtrack.style.scrollSnapType = ""; }, 380);
+    if (moved) { const stop = ev => { ev.stopPropagation(); ev.preventDefault(); }; wtrack.addEventListener("click", stop, { capture: true, once: true }); }
+  });
+
+  // ---------- previews ----------
+  const val = (key, fallback) => (key in answers ? answers[key] : fallback);
+  function paintPreview() {
+    const box = $("sprev"), st = steps[si];
+    if (!st) return;
+    const theme = val("theme", "light"), wall = val("wall", "dots"), adaptive = val("adaptive", false);
+    if (st.preview === "clock") {
+      box.innerHTML = '<div class="clockprev"></div>';
+      box.firstChild.textContent = new Date().toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit", hour12: !!val("hour12", sysHour12) });
+    } else if (st.preview === "mock") {
+      box.innerHTML = `<div class="mock${theme === "dark" ? " dark" : ""}"><span class="mw wprev wp-${wall}"></span><div class="mbar"><i></i><i></i></div><div class="mdock"><b></b><b></b><b></b><b></b><b></b></div></div>`;
+    } else if (st.preview === "icons") {
+      box.innerHTML = `<div class="icons-prev${adaptive ? " on" : ""}${theme === "dark" ? " dark" : ""}"><b></b><b></b><b></b><b></b><b></b></div><div class="prevnote">Blank for now. The real app icons come later.</div>`;
+    } else box.innerHTML = "";
+  }
+
+  // ---------- steps ----------
+  let steps = [], si = 0;
+  function paintProgress() {
+    const p = $("sprog");
+    if (p.children.length !== steps.length) p.innerHTML = steps.map(() => "<i></i>").join("");
+    [...p.children].forEach((d, i) => { d.className = i < si ? "done" : i === si ? "now" : ""; });
+  }
+  function showStep(i, dir = 1) {
+    steps = stepList();
+    si = Math.max(0, Math.min(steps.length - 1, i));
+    const st = steps[si], stage = $("sstage");
+    const fill = () => {
+      $("snum").textContent = `${si + 1} of ${steps.length}`;
+      $("stitle").textContent = st.title;
+      $("ssub").textContent = st.sub;
+      $("sback").style.visibility = si === 0 ? "hidden" : "";
+      $("snext").firstElementChild.textContent = si === steps.length - 1 ? "Start Windmill" : "Continue";
+      paintProgress();
+      buildWheel(st);
+    };
+    if (!stage.dataset.ready || reduce) { stage.dataset.ready = "1"; fill(); wtrack.focus({ preventScroll: true }); return; }
+    stage.classList.add(dir > 0 ? "out-l" : "out-r");
+    setTimeout(() => {
+      stage.classList.remove("out-l", "out-r");
+      stage.classList.add(dir > 0 ? "from-r" : "from-l");
+      fill();
+      void stage.offsetWidth;
+      stage.classList.remove("from-r", "from-l");
+      wtrack.focus({ preventScroll: true });
+    }, 240);
+  }
+  $("snext").addEventListener("click", () => {
+    commit();
+    if (si >= steps.length - 1) return finishSetup();
+    showStep(si + 1, 1);
+  });
+  $("sback").addEventListener("click", () => { commit(); showStep(si - 1, -1); });
+  setupEl.addEventListener("keydown", e => {
+    if (e.key === "Enter" && !e.target.closest("button")) { e.preventDefault(); $("snext").click(); }
+  });
+
+  function startSetup() {
+    for (const k in answers) delete answers[k];
+    delete $("sstage").dataset.ready;
+    setupEl.hidden = false;
+    void setupEl.offsetWidth;
+    setupEl.classList.add("on");
+    showStep(0);
+  }
+  let welcomeWord = "Welcome";
+  function finishSetup() {
+    Object.assign(prefs, {
+      country: answers.country, state: answers.state ?? null, lang: answers.lang,
+      hour12: answers.hour12, theme: answers.theme, wall: answers.wall, adaptive: answers.adaptive,
+    });
+    savePrefs();
+    hour12 = prefs.hour12; paintTime();
+    setTheme(prefs.theme); setWall(prefs.wall, false); setAdaptive(prefs.adaptive);
+    welcomeWord = WELCOME[prefs.lang] || "Welcome";
+    setupEl.classList.remove("on");
+    setTimeout(() => { setupEl.hidden = true; enterHome(); }, 650);
+  }
+
   function buildMenu() {
+    homeReady = true;
     bar.classList.add("in");
     chev.classList.add("in");
     setTimeout(lensAll, 900);
@@ -1175,23 +2410,27 @@ svg.word { width: min(860px, 92vw); height: auto; overflow: visible; display: bl
   }
 
   window.addEventListener("windmill:ready", () => {
-    centerCol.classList.add("leaving");                 // the name fades, leaving a blank white page
-    setTimeout(() => {
-      centerCol.hidden = true;
-      home.hidden = false;
-      setTimeout(buildMenu, 500);                        // the buttons load
-      setTimeout(() => {                                 // a calm "Welcome", chunk by chunk
-        const end = reveal(wtext, wclip, [
-          ["lr", [.3, .6, 1]], ["lr", [.5, 1]], ["tb", [.5, 1]], ["lr", [.5, 1]],
-          ["lr", [.5, 1]], ["lr", [.35, .7, 1]], ["lr", [.5, 1]],
-        ], 150, 120);
-        setTimeout(() => {                               // it leaves softly
-          welcome.classList.add("gone");
-          setTimeout(seedCluster, 1100);                 // then the dots, so nothing overlaps
-        }, end + 1500);
-      }, 1100);
-    }, 1000);
+    centerCol.classList.add("leaving");                 // the name fades, leaving a blank page
+    setTimeout(() => { centerCol.hidden = true; startSetup(); }, 1000);
   });
+
+  function enterHome() {
+    home.hidden = false;
+    setTimeout(buildMenu, 500);                          // the buttons load
+    setTimeout(() => {                                   // a calm "Welcome" in their language, chunk by chunk
+      wtext.textContent = welcomeWord;
+      wtext.style.fontSize = "";
+      const len = wtext.getComputedTextLength();
+      if (len > 640) wtext.style.fontSize = `${Math.floor(120 * 640 / len)}px`;
+      const n = wtext.getNumberOfChars();
+      const plan = Array.from({ length: n }, (_, i) => ["lr", i === 0 ? [.3, .6, 1] : [.5, 1]]);
+      const end = reveal(wtext, wclip, plan, Math.min(150, 1100 / Math.max(1, n)), 120);
+      setTimeout(() => {                                 // it leaves softly
+        welcome.classList.add("gone");
+        setTimeout(seedCluster, 1100);                   // then the dots, so nothing overlaps
+      }, end + 1500);
+    }, 1100);
+  }
 
   // ---------- go ----------
   Promise.race([
@@ -1207,7 +2446,7 @@ svg.word { width: min(860px, 92vw); height: auto; overflow: visible; display: bl
   });
 
   // Press R to replay while working on the intro.
-  addEventListener("keydown", e => { if (e.key === "r" || e.key === "R") location.reload(); });
+  addEventListener("keydown", e => { if ((e.key === "r" || e.key === "R") && !e.ctrlKey && !e.metaKey && !e.altKey && !e.target.closest("input, textarea, .setup") && !document.querySelector(".search.on")) location.reload(); });
 })();
 </script>
 </body>
