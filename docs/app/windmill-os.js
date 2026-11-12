@@ -58,7 +58,8 @@
   // SVG icons carry gradient and clip ids; give every copy its own so they never point at a hidden twin.
   let uid = 0;
   const uniq = svg => { const n = ++uid; return svg.replace(/id="([^"]+)"/g, `id="$1-${n}"`).replace(/url\(#([^)]+)\)/g, `url(#$1-${n})`).replace(/href="#([^"]+)"/g, `href="#$1-${n}"`); };
-  const iconHTML = item => item && item.img ? `<img class="app-ico" src="${esc(item.img)}" alt="" draggable="false">` : uniq((item && item.svg) || I.grid);
+  // real app icons sit on a squircle plate, so square ones never stick out of the shape
+  const iconHTML = item => item && item.img ? `<span class="app-plate"><img class="app-ico" src="${esc(item.img)}" alt="" draggable="false"></span>` : uniq((item && item.svg) || I.grid);
   const fmtDur = s => { const h = Math.floor(s / 3600), m = Math.round((s % 3600) / 60); return h ? `${h}h ${m}m` : `${m}m`; };
   function popToggle(node, on) { node.classList.toggle("on", on); node.setAttribute("aria-hidden", String(!on)); }
 
@@ -531,6 +532,9 @@
     $("pTop").innerHTML = st.top.slice(0, 4).map(t => `<span><b>${esc(t.app)}</b> ${fmtDur(t.seconds)}</span>`).join("");
   }
   if (isApp && T.event) T.event.listen("windmill://panel", () => { if (homeReady) togglePanel(); });
+  // from anywhere: Ctrl + K over another app, or the pointer pushed against the bottom edge
+  if (isApp && T.event) T.event.listen("windmill://search", () => { if (homeReady) { closeAll(); W.openSearch(); } });
+  if (isApp && T.event) T.event.listen("windmill://dock", () => { if (homeReady) { closeAll(); W.openDock(); } });
 
   // ======================= control center =======================
   const cc = el("div", "glass cc os-pop");
@@ -960,6 +964,9 @@
         <div class="srow tall"><span>Full screen<span class="sub2">Windmill covers the whole screen and the taskbar steps aside, so your apps get its space too. Press F11 to switch. The taskbar always comes back when Windmill closes.</span></span><button class="sw" type="button" role="switch" aria-checked="false" aria-label="Full screen" id="swBar"><i></i></button></div>
         <div class="srow tall"><span>Lock after<span class="sub2">While Windmill is in front and you step away.</span></span><span class="chips" id="lockChips">${[0, 5, 15, 30].map(m => `<button class="chip" type="button" data-m="${m}">${m ? m + " min" : "Never"}</button>`).join("")}</span></div>
         <div class="srow tall"><span>Lock screen PIN<span class="sub2" id="pinSub"></span></span><span class="chips" id="pinBox"></span></div>
+        <div class="srow tall"><span>Open apps full screen<span class="sub2">Every new app window fills the screen, edge to edge.</span></span><button class="sw" type="button" role="switch" aria-checked="true" aria-label="Open apps full screen" data-shell="appsFullScreen"><i></i></button></div>
+        <div class="srow tall"><span>Ctrl + K everywhere<span class="sub2">Windmill Search opens over any app. Code editors, Office and chat apps keep their own Ctrl + K.</span></span><button class="sw" type="button" role="switch" aria-checked="true" aria-label="Ctrl + K everywhere" data-shell="globalSearch"><i></i></button></div>
+        <div class="srow tall"><span>Dock at the bottom edge<span class="sub2">Push the pointer against the bottom of the screen, over any app, and the dock comes up.</span></span><button class="sw" type="button" role="switch" aria-checked="true" aria-label="Dock at the bottom edge" data-shell="edgeDock"><i></i></button></div>
         <div class="srow"><span>Keyboard shortcuts</span><button class="os-btn" type="button" id="showKeys">Show</button></div>
       </div>
     </div>
@@ -998,6 +1005,17 @@
     inp.addEventListener("keydown", ev => { if (ev.key === "Enter") commit(); });
   });
   $("showKeys").addEventListener("click", () => { W.closeWin(); openKeys(); });
+  // how Windmill treats other apps
+  const shellOpt = k => prefs[k] !== false;
+  const sendShell = () => { if (isApp) call("set_shell_options", { appsFullScreen: shellOpt("appsFullScreen"), globalSearch: shellOpt("globalSearch"), edgeDock: shellOpt("edgeDock") }).catch(() => {}); };
+  document.querySelectorAll("[data-shell]").forEach(b => {
+    b.setAttribute("aria-checked", String(shellOpt(b.dataset.shell)));
+    b.addEventListener("click", () => {
+      if (!isApp) return notify(b.getAttribute("aria-label"), "Available in the Windows app.");
+      prefs[b.dataset.shell] = !shellOpt(b.dataset.shell); save(); b.setAttribute("aria-checked", String(shellOpt(b.dataset.shell))); sendShell();
+    });
+  });
+  sendShell();
   function paintAccount() {
     const box = $("acct"); if (!box) return;
     const p = prefs.profile;

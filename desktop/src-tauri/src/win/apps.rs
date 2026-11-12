@@ -20,7 +20,39 @@ pub struct App {
 const SKIP: &[&str] = &[
     "uninstall", "uninstaller", "remove ", "readme", "read me", "help", "documentation", "release notes",
     "license", "manual", "website", "debuggable package manager",
+    // Windows' own admin tools and Control Panel entries: not apps you'd keep in a dock
+    "firewall", "event viewer", "registry editor", "odbc", "disk cleanup", "windows tools", "component services",
+    "computer management", "performance monitor", "resource monitor", "system configuration", "system information",
+    "task scheduler", "memory diagnostic", "recovery drive", "iscsi", "print management", "steps recorder",
+    "fax and scan", "powershell ise", "defragment", "local security policy", "media player legacy", "math input panel",
+    "xps viewer", "speech recognition", "on-screen keyboard", "administrative tools", "feedback hub", "mixed reality",
+    "3d viewer", "print 3d", "windows security", "internet explorer", "mobility center", "security configuration",
+    "disk management", "device manager", "hyper-v", "windows memory", "dfrgui", "msconfig", "sql server",
 ];
+
+/// Exact names that are system utilities (too generic to match by contains).
+const SKIP_EXACT: &[&str] = &[
+    "services", "run", "tips", "get help", "control panel", "narrator", "magnifier", "command prompt", "dialer",
+    "character map", "windows powershell", "windows powershell (x86)", "cortana", "quick assist", "windows fax and scan",
+    "work folders", "windows backup", "file history", "recovery", "wordpad", "windows media player legacy",
+];
+
+/// System32 and SysWOW64, as the apps folder spells them. Only a few apps that live there are ones people open.
+const SYSTEM_FOLDERS: &[&str] = &["{1ac14e77-02e7-4e5d-b744-2eb1ae5198b7}", "{d65231b0-b2f1-4857-a4ce-a8e7c6ea7d27}", "c:\\windows\\"];
+const SYSTEM_KEEP: &[&str] = &["notepad", "paint", "snipping tool", "calculator", "task manager", "file explorer", "remote desktop connection"];
+
+fn is_regular_app(name: &str, id: &str) -> bool {
+    let n = name.to_lowercase();
+    let i = id.to_lowercase();
+    if n.is_empty() || n.starts_with("http") || i.starts_with("http") { return false; }
+    if i.starts_with("::{") || i.starts_with("shell:") { return false; }                    // Control Panel and shell folders
+    for ext in [".msc", ".cpl", ".chm", ".url", ".txt", ".pdf", ".html", ".htm", ".ini", ".log", ".rtf", ".docx", ".doc", ".xml", ".bat", ".cmd", ".vbs"] {
+        if i.ends_with(ext) { return false; }
+    }
+    if SKIP.iter().any(|s| n.contains(s)) || SKIP_EXACT.iter().any(|s| n == *s) { return false; }
+    if SYSTEM_FOLDERS.iter().any(|f| i.starts_with(f)) && !SYSTEM_KEEP.iter().any(|k| n.contains(k)) { return false; }
+    true
+}
 
 unsafe fn text(p: PWSTR) -> String {
     let s = p.to_string().unwrap_or_default();
@@ -55,7 +87,7 @@ pub fn list() -> Result<Vec<App>, String> {
                 Err(_) => continue,
             };
             let lower = name.to_lowercase();
-            if name.is_empty() || SKIP.iter().any(|s| lower.contains(s)) || lower.starts_with("http") {
+            if !is_regular_app(&name, &id) {
                 continue;
             }
             if !seen.insert(lower) {

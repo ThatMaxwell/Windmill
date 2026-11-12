@@ -7,6 +7,7 @@
 #[cfg(target_os = "android")]
 mod android_icon;
 mod appicon;
+mod files;
 mod github;
 mod shell;
 #[cfg(windows)]
@@ -65,6 +66,12 @@ pub fn run() {
             shell::remove_wallpaper,
             shell::screen_time,
             shell::set_taskbar_hidden,
+            shell::set_shell_options,
+            files::files_places,
+            files::files_list,
+            files::files_open,
+            files::files_reveal,
+            files::files_icon,
             shell::show_windmill,
             shell::quit_windmill,
             shell::restart_windmill,
