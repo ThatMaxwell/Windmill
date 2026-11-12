@@ -1371,6 +1371,10 @@ html.dark .batbar, html.dark .x { background: rgba(255,255,255,.08); }
   }
 
   function outro(at) {
+    if (window.WindmillHooks && window.WindmillHooks.returning) {
+      later(() => window.dispatchEvent(new CustomEvent("windmill:ready", { detail: { returning: true } })), at + 650);
+      return;
+    }
     later(() => {
       pill.classList.add("in");
       later(() => pill.classList.add("done"), 220);
@@ -1785,7 +1789,6 @@ html.dark .batbar, html.dark .x { background: rgba(255,255,255,.08); }
     $("volBtn").dataset.label = muted ? "Muted" : `Volume ${vol}%`;
     if (tipFor === $("volBtn")) tip.textContent = $("volBtn").dataset.label;
   }
-  $("volBtn").addEventListener("click", () => { muted = !muted; paintVol(); });
   $("volBtn").addEventListener("wheel", e => {
     e.preventDefault(); muted = false;
     vol = Math.max(0, Math.min(100, vol + (e.deltaY < 0 ? 5 : -5)));
@@ -1808,7 +1811,8 @@ html.dark .batbar, html.dark .x { background: rgba(255,255,255,.08); }
   setTimeout(() => { paintTime(); setInterval(paintTime, 60000); }, (60 - new Date().getSeconds()) * 1000);
 
   // ---------- the dock ----------
-  const tiles = [...dock.querySelectorAll(".tile")];
+  const allTiles = () => [...dock.querySelectorAll(".tile")];
+  const tiles = allTiles();
   function openDock() {
     hideTip();
     dock.classList.add("open");
@@ -1820,7 +1824,7 @@ html.dark .batbar, html.dark .x { background: rgba(255,255,255,.08); }
     dock.classList.remove("open");
     chev.setAttribute("aria-expanded", "false");
     chev.dataset.label = "Apps";
-    tiles.forEach(t => t.style.setProperty("--mag", 1));
+    allTiles().forEach(t => t.style.setProperty("--mag", 1));
   }
   chev.addEventListener("click", e => { e.stopPropagation(); dock.classList.contains("open") ? closeDock() : openDock(); });
   dock.addEventListener("click", e => e.stopPropagation());
@@ -1829,21 +1833,24 @@ html.dark .batbar, html.dark .x { background: rgba(255,255,255,.08); }
   // magnify toward the pointer, like a Mac dock
   if (!reduce) {
     dock.addEventListener("pointermove", e => {
-      tiles.forEach(t => {
+      allTiles().forEach(t => {
         const r = t.getBoundingClientRect();
         const k = Math.max(0, 1 - Math.abs(e.clientX - (r.left + r.width / 2)) / 150);
         t.style.setProperty("--mag", (1 + .42 * k * k).toFixed(3));
       });
     });
-    dock.addEventListener("pointerleave", () => tiles.forEach(t => t.style.setProperty("--mag", 1)));
+    dock.addEventListener("pointerleave", () => allTiles().forEach(t => t.style.setProperty("--mag", 1)));
   }
   // opening an app: it bounces, then shows it is running
-  tiles.forEach(t => t.addEventListener("click", () => {
+  dock.addEventListener("click", e => {
+    const t = e.target.closest(".tile");
+    if (!t) return;
+    if (window.WindmillHooks && window.WindmillHooks.tile && window.WindmillHooks.tile(t)) return;
     if (t.dataset.app === "windmill") return openWin("settings", t);
     if (t.classList.contains("running")) return;
     t.classList.remove("bounce"); void t.offsetWidth; t.classList.add("bounce");
     setTimeout(() => { t.classList.remove("bounce"); t.classList.add("running"); }, 1800);
-  }));
+  });
 
   // ======================= preferences =======================
   const homeEl = $("home");
@@ -1857,6 +1864,7 @@ html.dark .batbar, html.dark .x { background: rgba(255,255,255,.08); }
     ["dots", "plain", "sky", "deep"].forEach(k => homeEl.classList.toggle("w-" + k, k === w));
     document.querySelectorAll(".wcard").forEach(c => { c.classList.toggle("on", c.dataset.wall === w); c.setAttribute("aria-pressed", c.dataset.wall === w); });
     prefs.wall = w; if (persist) savePrefs();
+    window.dispatchEvent(new CustomEvent("windmill:wall", { detail: w }));
   }
   function setCursor(c, persist = true) {
     document.documentElement.classList.remove("cur-windmill", "cur-dot");
@@ -2374,6 +2382,7 @@ html.dark .batbar, html.dark .x { background: rgba(255,255,255,.08); }
     Object.assign(prefs, {
       country: answers.country, state: answers.state ?? null, lang: answers.lang,
       hour12: answers.hour12, theme: answers.theme, wall: answers.wall, adaptive: answers.adaptive,
+      setupDone: true,
     });
     savePrefs();
     hour12 = prefs.hour12; paintTime();
@@ -2383,11 +2392,28 @@ html.dark .batbar, html.dark .x { background: rgba(255,255,255,.08); }
     setTimeout(() => { setupEl.hidden = true; enterHome(); }, 650);
   }
 
+  window.Windmill = {
+    $, NS, reduce, prefs, savePrefs, openWin, closeWin, showSection, setWall, setCursor, setBarItem, setTheme, setAdaptive,
+    openSearch, closeSearch, openDock, closeDock, lens, lensAll, pressable, showTip, hideTip, paintTime, renderSearch,
+    INDEX, dock, homeEl, WX, WELCOME,
+    wireTip(el) {
+      el.addEventListener("pointerenter", () => showTip(el));
+      el.addEventListener("pointerleave", hideTip);
+      el.addEventListener("pointerdown", hideTip);
+    },
+    setHour12(v) { hour12 = v; paintTime(); },
+    get weather() { return wxNow; },
+    get openWindow() { return openWinEl; },
+    get volume() { return { level: vol, muted }; },
+    setVolumeUI(level, m) { vol = Math.round(level); muted = !!m; paintVol(); },
+  };
+
   function buildMenu() {
     homeReady = true;
     bar.classList.add("in");
     chev.classList.add("in");
     setTimeout(lensAll, 900);
+    window.dispatchEvent(new CustomEvent("windmill:home"));
   }
 
   function seedCluster() {
@@ -2409,9 +2435,17 @@ html.dark .batbar, html.dark .x { background: rgba(255,255,255,.08); }
     dots.forEach((c, i) => setTimeout(() => c.classList.add("on"), reduce ? 0 : i * 45));
   }
 
-  window.addEventListener("windmill:ready", () => {
+  window.addEventListener("windmill:ready", e => {
+    const returning = !!(e.detail && e.detail.returning);
     centerCol.classList.add("leaving");                 // the name fades, leaving a blank page
-    setTimeout(() => { centerCol.hidden = true; startSetup(); }, 1000);
+    setTimeout(() => {
+      centerCol.hidden = true;
+      if (!returning) return startSetup();
+      hour12 = prefs.hour12 ?? null; paintTime();
+      setTheme(prefs.theme); setWall(prefs.wall || "dots", false); setAdaptive(prefs.adaptive);
+      welcomeWord = (window.WindmillHooks && window.WindmillHooks.welcome) || WELCOME[prefs.lang] || "Welcome";
+      enterHome();
+    }, returning ? 700 : 1000);
   });
 
   function enterHome() {
@@ -2449,5 +2483,7 @@ html.dark .batbar, html.dark .x { background: rgba(255,255,255,.08); }
   addEventListener("keydown", e => { if ((e.key === "r" || e.key === "R") && !e.ctrlKey && !e.metaKey && !e.altKey && !e.target.closest("input, textarea, .setup") && !document.querySelector(".search.on")) location.reload(); });
 })();
 </script>
+<link rel="stylesheet" href="windmill-os.css">
+<script src="windmill-os.js"></script>
 </body>
 </html>
