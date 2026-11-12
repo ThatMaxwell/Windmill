@@ -1,0 +1,93 @@
+/* Windmill's home glance: the time, rolling into place, and four live widgets on the wallpaper. */
+.glance {
+  position: absolute; z-index: 1; left: clamp(28px, 4vw, 64px); top: clamp(92px, 13vh, 140px);
+  display: grid; gap: 22px; width: min(392px, calc(100vw - 56px)); pointer-events: none;
+  color: var(--ink); transition: color .6s ease;
+}
+.glance > * { pointer-events: auto; }
+.glance[hidden] { display: none; }
+.home.w-deep .glance, html.dark .glance, .glance.on-photo { color: #fff; }
+.glance.on-photo .g-head { text-shadow: 0 2px 18px rgba(0, 0, 0, .35); }
+.home.glance-on .cluster { opacity: .5; }
+
+/* greeting, time, date */
+.g-head { display: grid; gap: 6px; }
+.g-hi { font: 500 15px/1.2 var(--sans); letter-spacing: -.005em; opacity: .78; }
+.g-time {
+  display: flex; align-items: baseline; gap: .02em; height: 1em; overflow: visible;
+  font: 400 clamp(88px, 10.5vw, 156px)/1 var(--serif); font-variation-settings: "opsz" 30; letter-spacing: -.03em;
+  font-variant-numeric: tabular-nums lining-nums;
+}
+.g-dg { display: inline-block; height: 1em; overflow: hidden; position: relative; }
+.g-strip { display: flex; flex-direction: column; transform: translateY(calc(var(--n, 0) * -1em)); transition: transform 1.05s cubic-bezier(.22, 1.3, .32, 1); transition-delay: var(--dl, 0s); }
+.g-strip span { height: 1em; line-height: 1; display: block; text-align: center; }
+.g-colon { display: inline-block; margin: 0 -.07em 0 -.05em; transform: translateY(-.07em); animation: gcolon 2s ease-in-out infinite; }
+@keyframes gcolon { 0%, 100% { opacity: 1; } 50% { opacity: .55; } }
+.g-ampm { font: 600 .16em/1 var(--sans); letter-spacing: .04em; margin-left: .35em; opacity: .7; align-self: flex-start; margin-top: .22em; }
+.g-date { font: 500 18px/1.3 var(--sans); letter-spacing: -.01em; opacity: .9; }
+
+/* the widgets */
+.g-cards { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.g-card {
+  appearance: none; border: 0; cursor: pointer; text-align: left; color: var(--glass-ink);
+  min-height: 150px; padding: 16px 16px 14px; border-radius: 24px;
+  display: grid; grid-template-rows: auto 1fr auto; gap: 6px;
+  transition: translate .5s var(--spring), scale .5s var(--spring);
+}
+.g-card > * { position: relative; z-index: 4; }
+.g-card:hover { translate: 0 -3px; }
+.g-card:active { scale: .97; }
+.g-card:focus-visible { outline: 2px solid var(--blue); outline-offset: 3px; }
+.g-k { display: flex; align-items: center; justify-content: space-between; gap: 8px; font: 600 12px/1 var(--sans); letter-spacing: .01em; color: var(--glass-sub); }
+.g-k svg { width: 18px; height: 18px; }
+.g-v.wait { font-size: 17px; letter-spacing: -.01em; color: var(--glass-sub); }
+.g-v { align-self: end; font: 600 34px/1 var(--sans); letter-spacing: -.03em; font-variant-numeric: tabular-nums; }
+.g-v small { font: 600 15px/1 var(--sans); letter-spacing: -.01em; margin-left: 3px; color: var(--glass-sub); }
+.g-s { font: 500 12.5px/1.3 var(--sans); color: var(--glass-sub); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+/* weather: the icon breathes a little */
+.g-wx .wxi svg { width: 26px; height: 26px; color: var(--blue); animation: gfloat 5s ease-in-out infinite; }
+@keyframes gfloat { 50% { transform: translateY(-2px) rotate(-3deg); } }
+
+/* battery: a ring that fills */
+.g-ring { width: 30px; height: 30px; rotate: -90deg; }
+.g-ring circle { fill: none; stroke-width: 4; }
+.g-ring .bg { stroke: rgba(20, 24, 40, .12); }
+html.dark .g-ring .bg { stroke: rgba(255, 255, 255, .14); }
+.g-ring .fg { stroke: #30d158; stroke-linecap: round; stroke-dasharray: 88; stroke-dashoffset: calc(88 - 88 * var(--p, 0) / 100); transition: stroke-dashoffset 1.4s cubic-bezier(.2, .9, .25, 1) .2s; }
+.g-ring.low .fg { stroke: #ff453a; }
+.g-bolt { color: #30d158; opacity: 0; transition: opacity .4s ease; }
+.g-bat.charging .g-bolt { opacity: 1; animation: gpulse 1.8s ease-in-out infinite; }
+@keyframes gpulse { 50% { opacity: .35; } }
+
+/* screen time: bars that grow */
+.g-bars { display: flex; align-items: flex-end; gap: 3px; height: 30px; }
+.g-bars i { flex: 1; min-height: 3px; border-radius: 3px; background: rgba(var(--blue-rgb), .28); height: 3px; transition: height .9s cubic-bezier(.2, 1.2, .3, 1); transition-delay: calc(var(--i) * 40ms + .3s); }
+.g-bars i.now { background: var(--blue); }
+html.dark .g-bars i { background: rgba(125, 156, 255, .35); }
+html.dark .g-bars i.now { background: #7d9cff; }
+
+/* open windows: their icons, overlapping */
+.g-icons { display: flex; align-items: center; height: 30px; }
+.g-icons > * { width: 28px; height: 28px; border-radius: 8px; margin-right: -7px; box-shadow: 0 0 0 2px rgba(255, 255, 255, .85), 0 3px 8px -3px rgba(0, 0, 0, .3); overflow: hidden; background: #fff; flex: none; }
+.g-icons > * svg, .g-icons > * img { width: 100%; height: 100%; display: block; }
+html.dark .g-icons > * { box-shadow: 0 0 0 2px rgba(30, 32, 40, .9), 0 3px 8px -3px rgba(0, 0, 0, .5); }
+
+/* coming in: the head rises, the cards follow one by one */
+.glance .g-head > *, .glance .g-card { opacity: 0; transform: translateY(18px) scale(.97); }
+.glance.in .g-head > *, .glance.in .g-card {
+  opacity: 1; transform: none;
+  transition: opacity .7s ease, transform 1s cubic-bezier(.2, 1.25, .35, 1);
+  transition-delay: calc(var(--i, 0) * 90ms);
+}
+.glance.out .g-head > *, .glance.out .g-card { opacity: 0; transform: translateY(10px) scale(.98); transition: opacity .3s ease, transform .4s ease; }
+
+/* the wallpaper moves a touch with your pointer */
+.wall.parallax { transition: transform 1.2s cubic-bezier(.2, .8, .2, 1); }
+
+@media (max-width: 900px), (max-height: 620px) { .glance .g-cards { display: none; } }
+@media (max-width: 640px) { .glance { display: none; } }
+
+html.a-rm .glance .g-head > *, html.a-rm .glance .g-card { transition: none !important; transform: none !important; }
+html.a-rm .g-strip, html.a-rm .g-bars i, html.a-rm .g-ring .fg { transition: none !important; }
+html.a-rm .g-wx .wxi svg, html.a-rm .g-colon, html.a-rm .g-bat.charging .g-bolt { animation: none !important; }

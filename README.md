@@ -15,9 +15,9 @@
   <a href="https://thatmaxwell.github.io/Windmill/app/">Try it in your browser</a>
 </p>
 
-![The Windmill home: a sky wallpaper, a glass bar at the top and the dock with your apps at the bottom](docs/assets/hero-home.webp)
+![The Windmill home on the Deep blue wallpaper: a big clock, weather, battery, screen time and open windows, and the dock with your apps](docs/assets/deep/home.webp)
 
-> **Early preview.** Windmill 0.2 works, but expect rough edges. Bug reports are welcome in [Issues](https://github.com/ThatMaxwell/Windmill/issues).
+> **Early preview.** Windmill 0.3 works, but expect rough edges. Bug reports are welcome in [Issues](https://github.com/ThatMaxwell/Windmill/issues).
 
 ## What it is
 
@@ -25,6 +25,7 @@ Windmill is **not** a new operating system. It's an app that runs full screen on
 
 ## Features
 
+- **A home that tells you things, quietly.** A big clock that rolls into place, the date, and live widgets for the weather, your battery, today's screen time and what's open. Your wallpaper leans a little as you move the mouse.
 - **Your real apps.** Everything installed on your PC, Store apps included, shows up with its real icon. Keep favorites in the dock, open everything else from **All apps**, and see which apps are running.
 - **The Windmill panel: Ctrl + Win.** One shortcut, from anywhere: what's open, recent apps, memory, processor and battery, your last 24 hours of screen time, and **Lock**, **Restart** or **Shut down** Windmill.
 - **Multitasking.** Hover an open app in the dock to snap it to the left or right half, fill the screen, minimize, close, or put it side by side with another window.
@@ -40,8 +41,9 @@ Windmill is **not** a new operating system. It's an app that runs full screen on
 
 | | |
 |---|---|
-| ![The Windmill panel in dark mode over the Aurora wallpaper](docs/assets/dark.webp) | ![Hovering an app in the dock to snap it or put it side by side](docs/assets/multitask.webp) |
-| ![Windmill Search](docs/assets/search.webp) | ![Windmill Settings](docs/assets/settings.webp) |
+| ![The Windmill panel: open windows, memory, battery, recent apps and screen time](docs/assets/deep/panel.webp) | ![Hovering an app in the dock to snap it or put it side by side](docs/assets/deep/multitask.webp) |
+| ![Windmill Search](docs/assets/deep/search.webp) | ![The control center: Wi-Fi, Bluetooth, Do Not Disturb, dark mode, volume and brightness](docs/assets/deep/cc.webp) |
+| ![Settings, Accessibility, in OpenDyslexic](docs/assets/deep/access-dys.webp) | ![The lock screen](docs/assets/deep/lock.webp) |
 
 <sub>Screenshots use example data.</sub>
 
@@ -70,9 +72,17 @@ Get both from the [latest release](https://github.com/ThatMaxwell/Windmill/relea
 
 ## Use your PC from your phone
 
+<p>
+  <img src="docs/assets/deep/phone-connect.webp" width="200" alt="Windmill on Android: Connect to your PC, with an address field and six code boxes">
+  &nbsp;
+  <img src="docs/assets/deep/phone-session.webp" width="470" alt="A phone in landscape showing the PC's Windmill home, with a small bar for the keyboard, the panel, Esc and disconnect">
+</p>
+
 1. On your PC, open Windmill → **Phone** → turn on **Let my phone connect**. It shows your PC's address and a six-digit code.
-2. Open Windmill on your phone and type the address and code.
+2. Open Windmill on your phone, type the address, then the code. It connects as soon as the last digit is in.
 3. Your screen appears. Tap to click, hold to right-click, drag to move things, scroll with two fingers, and use the keyboard button to type. The Windmill button opens the panel on your PC.
+
+The gear on the phone's connect screen opens its settings: reading font (including OpenDyslexic), light or dark, the app icon, bold text and reduce motion.
 
 How it stays safe:
 
