@@ -98,6 +98,7 @@ jobs:
       - name: Build
         run: |
           npx tauri android init --ci
+          python3 android/patch.py
           npx tauri android build --apk --debug --target aarch64 --target armv7 --ci
 
       - name: Collect

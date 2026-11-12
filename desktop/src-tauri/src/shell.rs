@@ -412,3 +412,48 @@ pub fn quit_windmill<R: Runtime>(app: AppHandle<R>) {
     win::system::set_taskbar_hidden(false);
     app.exit(0);
 }
+
+// ---------- use this PC from your phone ----------
+
+#[tauri::command]
+pub fn remote_start<R: Runtime>(app: AppHandle<R>) -> Res<serde_json::Value> {
+    #[cfg(windows)]
+    {
+        return win::remote::start(app).map(|s| serde_json::to_value(s).unwrap_or_default());
+    }
+    #[allow(unreachable_code)]
+    {
+        let _ = app;
+        unsupported()
+    }
+}
+
+#[tauri::command]
+pub fn remote_stop() -> Res<serde_json::Value> {
+    #[cfg(windows)]
+    {
+        return Ok(serde_json::to_value(win::remote::stop()).unwrap_or_default());
+    }
+    #[allow(unreachable_code)]
+    unsupported()
+}
+
+#[tauri::command]
+pub fn remote_status() -> Res<serde_json::Value> {
+    #[cfg(windows)]
+    {
+        return Ok(serde_json::to_value(win::remote::status()).unwrap_or_default());
+    }
+    #[allow(unreachable_code)]
+    unsupported()
+}
+
+#[tauri::command]
+pub fn remote_new_code() -> Res<serde_json::Value> {
+    #[cfg(windows)]
+    {
+        return Ok(serde_json::to_value(win::remote::new_code()).unwrap_or_default());
+    }
+    #[allow(unreachable_code)]
+    unsupported()
+}

@@ -4,6 +4,7 @@ pub mod apps;
 pub mod audio;
 pub mod hotkey;
 pub mod icons;
+pub mod remote;
 pub mod system;
 pub mod usage;
 pub mod windows;

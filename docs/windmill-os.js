@@ -10,6 +10,7 @@
   if (!W) return;
   const T = window.__TAURI__;
   const isApp = !!(T && T.core && T.core.invoke);
+  const onPhone = isApp && /Android/i.test(navigator.userAgent);
   const call = (cmd, args) => (isApp ? T.core.invoke(cmd, args) : Promise.reject(new Error("preview")));
   const { $, NS, prefs } = W;
   const save = () => W.savePrefs();
@@ -62,7 +63,7 @@
   function popToggle(node, on) { node.classList.toggle("on", on); node.setAttribute("aria-hidden", String(!on)); }
 
   // ======================= returning people skip sign-in and setup =======================
-  window.WindmillHooks = { returning: isApp && !!prefs.setupDone, tile: onTile };
+  window.WindmillHooks = { returning: (isApp && !!prefs.setupDone) || onPhone, tile: onTile };
 
   // ======================= sign in with GitHub (in the app) =======================
   const pill = $("signin");
@@ -1013,15 +1014,223 @@
     const f = batBtn.querySelector(".bfill"); if (f) f.setAttribute("width", (10 * b.percent / 100).toFixed(1));
   }
 
+  // ======================= app icon: white, blue or black =======================
+  const SAIL = "M3 4 L-48 -101 L36 -122 L28 -6 Z";
+  const APP_ICONS = {
+    blue: { bg: "linear-gradient(#3d72ff,#0033d6)", fg: "#fff", hole: "#1a52f0", label: "Blue" },
+    white: { bg: "linear-gradient(#fff,#eef1f7)", fg: "#0141FD", hole: "#fff", label: "White" },
+    black: { bg: "linear-gradient(#2a2c33,#121317)", fg: "#fff", hole: "#1b1c21", label: "Black" },
+  };
+  const pinwheel = (fg, hole) => `<svg viewBox="0 0 256 256" aria-hidden="true"><g transform="translate(128 128)" fill="${fg}">${[0, 90, 180, 270].map(a => `<path d="${SAIL}" transform="rotate(${a})"/>`).join("")}<circle r="21"/></g><circle cx="128" cy="128" r="8" fill="${hole}"/></svg>`;
+  function paintWindmillTile(v) {
+    const c = APP_ICONS[v] || APP_ICONS.blue;
+    const rise = windmillTile && windmillTile.querySelector(".rise");
+    if (rise) rise.innerHTML = `<span class="appicon" style="background:${c.bg}">${pinwheel(c.fg, c.hole)}</span>`;
+  }
+  const iconRow = el("div", "srow tall");
+  iconRow.innerHTML = `<span>App icon<span class="sub2">How Windmill looks in ${isApp ? (onPhone ? "your home screen" : "Start, the taskbar and your desktop") : "the app"}.</span></span>
+    <span class="iconpick">${Object.entries(APP_ICONS).map(([k, c]) => `<button type="button" class="ip" data-icon="${k}" aria-label="${c.label} icon"><span class="appicon" style="background:${c.bg}">${pinwheel(c.fg, c.hole)}</span><small>${c.label}</small></button>`).join("")}</span>`;
+  document.querySelector('#win-settings [data-panel="windmill"] .rows').prepend(iconRow);
+  function paintIconPick() {
+    const v = prefs.appIcon || "blue";
+    iconRow.querySelectorAll(".ip").forEach(b => b.classList.toggle("on", b.dataset.icon === v));
+    paintWindmillTile(v);
+  }
+  iconRow.addEventListener("click", async e => {
+    const b = e.target.closest(".ip"); if (!b) return;
+    prefs.appIcon = b.dataset.icon; save(); paintIconPick();
+    if (!isApp) return notify("App icon", "In the app, this changes Windmill's icon on your PC or phone.");
+    try {
+      await call("set_app_icon", { variant: prefs.appIcon });
+      notify("App icon changed", onPhone ? "Your home screen shows it in a moment." : "Start, the taskbar and your desktop shortcut use it now.", I.image);
+    } catch (err) { notify("Couldn't change the icon", String(err.message || err)); }
+  });
+  if (isApp) call("get_app_icon").then(v => { if (v) { prefs.appIcon = v; save(); paintIconPick(); } }).catch(() => {});
+  paintIconPick();
+
+  // ======================= Phone, on the PC: let your phone use this computer =======================
+  function setupPhoneWindow() {
+    const body = document.querySelector("#win-phone .wbody");
+    const sub = document.querySelector("#win-phone .wsub");
+    if (sub) sub.textContent = "Same Wi-Fi";
+    body.innerHTML = `
+      <div class="code rmpc">
+        <div class="rmpc-h"><span class="ttl small">Let my phone connect</span><button class="sw" type="button" role="switch" aria-checked="false" aria-label="Let my phone connect" id="rmSw"><i></i></button></div>
+        <div id="rmOn" hidden>
+          <div class="small">Address</div><div class="digits addr" id="rmIp">–</div>
+          <div class="small">Code</div><div class="digits" id="rmCodePc">–</div>
+          <button class="ghostbtn" type="button" id="rmNew">New code</button>
+        </div>
+        <div class="small" id="rmState">Off. Nobody can connect.</div>
+      </div>
+      <ol class="steps">
+        <li>Get Windmill for Android from the <a href="#" id="rmGet">Releases page</a> and open it.</li>
+        <li>Type the address and code shown here.</li>
+        <li>Your screen shows up. Tap to click, hold to right-click, drag to move things, two fingers to scroll, and the keyboard button to type.</li>
+      </ol>
+      <p class="note">Only phones on your Wi-Fi can reach it, and only with the code. The first time, Windows may ask whether Windmill can use private networks: choose Allow.</p>`;
+    const paint = s => {
+      $("rmSw").setAttribute("aria-checked", String(!!s.running));
+      $("rmOn").hidden = !s.running;
+      $("rmIp").textContent = s.address || "Not on a network";
+      $("rmCodePc").textContent = (s.code || "").replace(/(\d{3})(\d{3})/, "$1 $2");
+      $("rmState").textContent = !s.running ? "Off. Nobody can connect." : s.phone ? `Connected: ${s.phone}` : "Waiting for your phone…";
+    };
+    const refresh = () => call("remote_status").then(paint).catch(() => {});
+    $("rmSw").addEventListener("click", async () => {
+      const on = $("rmSw").getAttribute("aria-checked") !== "true";
+      try { paint(await call(on ? "remote_start" : "remote_stop")); }
+      catch (e) { notify("Couldn't turn it on", String(e.message || e)); }
+    });
+    $("rmNew").addEventListener("click", () => call("remote_new_code").then(paint).catch(() => {}));
+    $("rmGet").addEventListener("click", e => { e.preventDefault(); call("plugin:opener|open_url", { url: "https://github.com/ThatMaxwell/Windmill/releases" }).catch(() => {}); });
+    document.querySelector('.home [data-open="phone"]').addEventListener("click", refresh);
+    T.event.listen("windmill://remote", e => {
+      const p = e.payload && e.payload.phone;
+      notify(p ? "Your phone connected" : "Your phone disconnected", p ? `From ${p}. Turn it off in Phone any time.` : "");
+      refresh();
+    });
+    refresh();
+  }
+
+  // ======================= the Android app: use your PC from the phone =======================
+  function startRemote() {
+    const rm = el("div", "rm");
+    rm.innerHTML = `
+      <section class="rm-connect" id="rmc">
+        <div class="rm-mark" style="color:var(--blue)">${MARK}</div>
+        <h1>Your PC, from here.</h1>
+        <p>On your PC, open Windmill, go to <b>Phone</b> and turn on <b>Let my phone connect</b>. Then type what it shows.</p>
+        <label class="rm-field"><span>PC address</span><input id="rmAddr" inputmode="decimal" placeholder="192.168.1.23" autocomplete="off" spellcheck="false"></label>
+        <label class="rm-field"><span>Code</span><input id="rmCode" inputmode="numeric" placeholder="6 digits" maxlength="7" autocomplete="off"></label>
+        <button class="snext" type="button" id="rmGo"><span>Connect</span><svg viewBox="0 0 18 18" aria-hidden="true"><path d="M4 9h10M10 5l4 4-4 4" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+        <div class="rm-err" id="rmErr" role="alert"></div>
+        <div class="rm-note">Your phone and PC need to be on the same Wi-Fi.</div>
+      </section>
+      <section class="rm-session" id="rms" hidden>
+        <img class="rm-screen" id="rmImg" alt="Your PC's screen">
+        <div class="rm-bar glass">
+          <span class="rm-name"><b id="rmName">PC</b><small id="rmFps"></small></span>
+          <button class="os-icon" type="button" data-r="kb" aria-label="Keyboard">${I.keys}</button>
+          <button class="os-icon" type="button" data-r="panel" aria-label="Windmill panel">${MARK.replace('class="mark"', 'class="ic" style="color:var(--blue)"')}</button>
+          <button class="os-icon" type="button" data-r="esc" aria-label="Escape"><b style="font:600 11px var(--sans)">Esc</b></button>
+          <button class="os-icon" type="button" data-r="bye" aria-label="Disconnect">${I.close}</button>
+        </div>
+        <textarea class="rm-kb" id="rmKb" autocapitalize="off" autocomplete="off" autocorrect="off" spellcheck="false" aria-label="Type on your PC"></textarea>
+      </section>`;
+    document.body.appendChild(rm);
+    const addr = $("rmAddr"), code = $("rmCode"), img = $("rmImg"), kb = $("rmKb");
+    addr.value = prefs.remoteAddr || "";
+    let ws = null, frames = 0, lastUrl = "";
+    const send = o => { if (ws && ws.readyState === 1) ws.send(JSON.stringify(o)); };
+    const fail = msg => { $("rmErr").textContent = msg; $("rms").hidden = true; $("rmc").hidden = false; $("rmGo").disabled = false; };
+    function connect() {
+      const a = addr.value.trim(), c = code.value.replace(/\D/g, "");
+      if (!a) return fail("Type your PC's address.");
+      if (c.length !== 6) return fail("The code has 6 digits.");
+      prefs.remoteAddr = a; save();
+      $("rmErr").textContent = ""; $("rmGo").disabled = true;
+      try { ws = new WebSocket(`ws://${a.includes(":") ? a : a + ":47321"}`); } catch (e) { return fail("That address doesn't look right."); }
+      ws.binaryType = "blob";
+      const timer = setTimeout(() => { if (ws.readyState !== 1) { ws.close(); fail("Couldn't reach your PC. Check the address and that both are on the same Wi-Fi."); } }, 8000);
+      ws.onopen = () => { clearTimeout(timer); send({ t: "hello", code: c }); };
+      ws.onmessage = ev => {
+        if (typeof ev.data === "string") {
+          const m = JSON.parse(ev.data);
+          if (m.t === "ok") { $("rmName").textContent = m.name || "PC"; $("rmc").hidden = true; $("rms").hidden = false; $("rmGo").disabled = false; }
+          if (m.t === "error") fail(m.why || "Your PC said no.");
+          return;
+        }
+        const url = URL.createObjectURL(ev.data);
+        img.onload = () => { if (lastUrl) URL.revokeObjectURL(lastUrl); lastUrl = url; frames++; send({ t: "ack" }); };
+        img.onerror = () => send({ t: "ack" });
+        img.src = url;
+      };
+      ws.onclose = () => { clearTimeout(timer); if (!$("rms").hidden) fail("Disconnected from your PC."); else $("rmGo").disabled = false; };
+      ws.onerror = () => {};
+    }
+    $("rmGo").addEventListener("click", connect);
+    code.addEventListener("keydown", e => { if (e.key === "Enter") connect(); });
+    setInterval(() => { $("rmFps").textContent = $("rms").hidden ? "" : `${frames} fps`; frames = 0; }, 1000);
+
+    // where on the PC screen a finger is
+    function at(cx, cy) {
+      const r = img.getBoundingClientRect(), iw = img.naturalWidth || 16, ih = img.naturalHeight || 9;
+      const s = Math.min(r.width / iw, r.height / ih), w = iw * s, h = ih * s;
+      return { x: (cx - (r.left + (r.width - w) / 2)) / w, y: (cy - (r.top + (r.height - h) / 2)) / h };
+    }
+    const mid = t => ({ x: (t[0].clientX + t[1].clientX) / 2, y: (t[0].clientY + t[1].clientY) / 2 });
+    let start = null, long = 0, dragging = false, longDone = false, two = null, lastMove = 0, last = null;
+    img.addEventListener("touchstart", e => {
+      e.preventDefault();
+      if (e.touches.length >= 2) { clearTimeout(long); if (dragging) { send({ t: "up", ...last }); dragging = false; } two = mid(e.touches); return; }
+      const t = e.touches[0];
+      start = { x: t.clientX, y: t.clientY, at: Date.now() }; last = at(t.clientX, t.clientY);
+      dragging = false; longDone = false;
+      long = setTimeout(() => { longDone = true; send({ t: "click", ...at(start.x, start.y), b: 2 }); if (navigator.vibrate) navigator.vibrate(15); }, 520);
+    }, { passive: false });
+    img.addEventListener("touchmove", e => {
+      e.preventDefault();
+      if (two && e.touches.length >= 2) {
+        const m = mid(e.touches), dy = m.y - two.y, dx = m.x - two.x;
+        if (Math.abs(dy) > 6 || Math.abs(dx) > 6) { send({ t: "wheel", dy: Math.round(dy * 4), dx: Math.round(-dx * 4) }); two = m; }
+        return;
+      }
+      if (!start || longDone) return;
+      const t = e.touches[0];
+      if (!dragging && Math.hypot(t.clientX - start.x, t.clientY - start.y) > 10) {
+        clearTimeout(long); dragging = true; send({ t: "down", ...at(start.x, start.y) });
+      }
+      if (dragging && Date.now() - lastMove > 30) { last = at(t.clientX, t.clientY); send({ t: "move", ...last }); lastMove = Date.now(); }
+    }, { passive: false });
+    img.addEventListener("touchend", e => {
+      e.preventDefault();
+      clearTimeout(long);
+      if (two) { if (e.touches.length < 2) two = null; return; }
+      if (dragging) { send({ t: "up", ...last }); dragging = false; return; }
+      if (start && !longDone && Date.now() - start.at < 600) send({ t: "click", ...at(start.x, start.y) });
+      start = null;
+    }, { passive: false });
+    // mouse works too (handy with a stylus or in testing)
+    img.addEventListener("mousedown", e => { send({ t: "down", ...at(e.clientX, e.clientY), b: e.button === 2 ? 2 : 0 }); });
+    img.addEventListener("mouseup", e => { send({ t: "up", ...at(e.clientX, e.clientY), b: e.button === 2 ? 2 : 0 }); });
+    img.addEventListener("contextmenu", e => e.preventDefault());
+
+    // typing: a hidden box with two spaces in it, so deletes are always visible to us
+    const SENT = "  ";
+    kb.value = SENT;
+    kb.addEventListener("input", () => {
+      const v = kb.value;
+      if (v.length < SENT.length) { for (let i = v.length; i < SENT.length; i++) send({ t: "key", k: "Backspace" }); }
+      else {
+        const typed = v.slice(SENT.length);
+        typed.split(/(\n)/).forEach(part => { if (part === "\n") send({ t: "key", k: "Enter" }); else if (part) send({ t: "text", s: part }); });
+      }
+      kb.value = SENT; kb.setSelectionRange(SENT.length, SENT.length);
+    });
+    rm.querySelector(".rm-bar").addEventListener("click", e => {
+      const b = e.target.closest("[data-r]"); if (!b) return;
+      const r = b.dataset.r;
+      if (r === "kb") { kb.focus(); kb.setSelectionRange(SENT.length, SENT.length); }
+      if (r === "panel") send({ t: "panel" });
+      if (r === "esc") send({ t: "key", k: "Escape" });
+      if (r === "bye") { send({ t: "bye" }); if (ws) ws.close(); $("rms").hidden = true; $("rmc").hidden = false; }
+    });
+    requestAnimationFrame(() => rm.classList.add("on"));
+  }
+  if (onPhone) window.addEventListener("windmill:ready", () => setTimeout(startRemote, 400));
+
   // ======================= start =======================
   window.addEventListener("windmill:home", () => {
     homeReady = true;
+    if (onPhone) return;   // the phone app is the remote; the PC features live on the PC
     if (isApp) {
       call("set_taskbar_hidden", { hidden: prefs.hideTaskbar !== false }).catch(() => {});
       if (prefs.profile) notify(`Welcome back, ${prefs.profile.name || prefs.profile.login}`, "Press Ctrl + Win any time for your Windmill panel.");
       else if (!prefs.seenPanelTip) { prefs.seenPanelTip = true; save(); notify("Tip", "Press Ctrl + Win any time for your Windmill panel."); }
     }
     loadApps(); loadCustoms(); paintBarBattery();
+    if (isApp) call("platform").then(p => { if (p.windows) setupPhoneWindow(); }).catch(() => {});
     setInterval(() => { if (document.visibilityState === "visible") refreshWindows(); }, 2500);
     setInterval(() => { paintBarBattery(); watchBattery(); }, 60000);
     if ((prefs.wall || "").startsWith("live-")) window.dispatchEvent(new CustomEvent("windmill:wall", { detail: prefs.wall }));

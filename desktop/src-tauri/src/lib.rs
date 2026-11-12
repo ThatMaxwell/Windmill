@@ -4,6 +4,9 @@
 //! needs from the computer goes through the commands in `shell.rs`; on Windows they are backed
 //! by the Win32 code in `win/`. Elsewhere they report that the feature is Windows-only for now.
 
+#[cfg(target_os = "android")]
+mod android_icon;
+mod appicon;
 mod github;
 mod shell;
 #[cfg(windows)]
@@ -17,6 +20,11 @@ pub fn run() {
     let mut builder = tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_opener::init());
+
+    #[cfg(target_os = "android")]
+    {
+        builder = builder.plugin(android_icon::init());
+    }
 
     #[cfg(desktop)]
     {
@@ -66,11 +74,18 @@ pub fn run() {
             github::github_device_poll,
             github::github_profile,
             github::github_sign_out,
+            appicon::get_app_icon,
+            appicon::set_app_icon,
+            shell::remote_start,
+            shell::remote_stop,
+            shell::remote_status,
+            shell::remote_new_code,
         ])
         .setup(|app| {
             if let Some(w) = app.get_webview_window("main") {
                 let _ = w.set_focus();
             }
+            appicon::apply_window_icon(app.handle());
             // First launch: start with Windows from now on (it can be switched off in Settings).
             #[cfg(desktop)]
             if let Ok(dir) = app.path().app_data_dir() {
