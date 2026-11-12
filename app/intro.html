@@ -60,8 +60,6 @@ svg.word { width: min(860px, 92vw); height: auto; overflow: visible; display: bl
 /* ---------- Sign in with GitHub ---------- */
 .cta-slot { height: 60px; display: grid; place-items: center; }
 .pill {
-  --mx: 50%; --my: 50%;
-  --tx: 0px; --ty: 0px; --sx: 1; --sy: 1;
   position: relative;
   isolation: isolate;
   appearance: none; border: 0; cursor: pointer;
@@ -76,11 +74,7 @@ svg.word { width: min(860px, 92vw); height: auto; overflow: visible; display: bl
   box-shadow:
     0 1px 2px rgba(var(--blue-rgb), .25),
     0 8px 22px -10px rgba(var(--blue-rgb), .55);
-  transform: translate(var(--tx), var(--ty)) scale(var(--sx), var(--sy));
-  transition:
-    background .28s ease,
-    box-shadow .28s ease,
-    transform .5s cubic-bezier(.2, 1.6, .3, 1);
+  transition: background .12s steps(2, jump-none);
   visibility: hidden;
   clip-path: inset(0 100% 0 0 round 999px);
 }
@@ -96,74 +90,31 @@ svg.word { width: min(860px, 92vw); height: auto; overflow: visible; display: bl
 .pill svg { width: 20px; height: 20px; flex: none; position: relative; z-index: 2; }
 .pill .label { position: relative; z-index: 2; text-shadow: 0 1px 0 rgba(0, 20, 90, .18); }
 
-/* glass layers, invisible until hover */
-.pill .glass, .pill .gloss, .pill .light, .pill .rim {
-  position: absolute; inset: 0; border-radius: inherit; pointer-events: none;
-  opacity: 0; transition: opacity .28s ease;
-}
-.pill .glass {
-  z-index: 0;
-  background:
-    linear-gradient(180deg, rgba(var(--blue-rgb), .42), rgba(var(--blue-rgb), .78)),
-    rgba(var(--blue-rgb), .35);
-  -webkit-backdrop-filter: blur(16px) saturate(190%);
-  backdrop-filter: blur(16px) saturate(190%);
-}
-.pill .gloss {
-  z-index: 1;
-  inset: 2px 10px auto 10px; height: 52%;
-  border-radius: 999px 999px 60% 60% / 999px 999px 100% 100%;
-  background: linear-gradient(180deg, rgba(255,255,255,.62), rgba(255,255,255,.08) 70%, rgba(255,255,255,0));
-  mix-blend-mode: screen;
-}
-.pill .light {
-  z-index: 1;
-  background: radial-gradient(120px 70px at var(--mx) var(--my), rgba(255,255,255,.55), rgba(255,255,255,0) 70%);
-  mix-blend-mode: soft-light;
-}
-.pill .rim {
-  z-index: 3;
-  box-shadow:
-    inset 0 1.5px 0 rgba(255,255,255,.75),
-    inset 0 -1px 0 rgba(255,255,255,.28),
-    inset 0 0 0 1px rgba(255,255,255,.28),
-    inset 0 -10px 18px -10px rgba(170, 200, 255, .55);
-}
-.pill:hover {
-  background: rgba(var(--blue-rgb), .5);
-  box-shadow:
-    0 1px 1px rgba(var(--blue-rgb), .2),
-    0 18px 40px -14px rgba(var(--blue-rgb), .7),
-    0 0 0 6px rgba(var(--blue-rgb), .07);
-}
-.pill:hover .glass, .pill:hover .gloss, .pill:hover .light, .pill:hover .rim { opacity: 1; }
-.pill:active { --sx: .96; --sy: .94; transition-duration: .28s, .28s, .12s; }
+.pill:hover { background: #0036E0; }
+.pill:active { transform: scale(.97); }
 .pill:focus-visible { outline: 2px solid var(--blue); outline-offset: 5px; }
 
 /* ---------- hologram ---------- */
 .holo {
   position: fixed;
-  left: max(20px, env(safe-area-inset-left, 0px));
-  bottom: max(18px, env(safe-area-inset-bottom, 0px));
-  width: 168px; height: 168px;
+  left: max(8px, env(safe-area-inset-left, 0px));
+  bottom: max(6px, env(safe-area-inset-bottom, 0px));
+  width: min(400px, 46vw);
+  aspect-ratio: 400 / 250;
   visibility: hidden;
   pointer-events: none;
 }
 .holo canvas { width: 100%; height: 100%; display: block; }
 .holo::after {
   content: ""; position: absolute; inset: 0;
-  background: repeating-linear-gradient(180deg, rgba(255,255,255,0) 0 2px, rgba(255,255,255,.55) 2px 3px);
+  background: repeating-linear-gradient(180deg, rgba(255,255,255,0) 0 2px, rgba(255,255,255,.4) 2px 3px);
   pointer-events: none;
 }
-.holo.in { visibility: visible; animation: flickon .32s steps(4, jump-none) both; }
-.holo.blink { animation: blink .12s steps(2, jump-none) both; }
-@keyframes flickon { 0% { opacity: 0 } 25% { opacity: .7 } 50% { opacity: .15 } 75% { opacity: .9 } 100% { opacity: 1 } }
-@keyframes blink   { 0% { opacity: 1 } 50% { opacity: .35 } 100% { opacity: 1 } }
+.holo.in { visibility: visible; }
 
 @media (prefers-reduced-motion: reduce) {
-  .mill.pop, .mill.crush .sail, .spin, .pill.in, .holo.in, .holo.blink { animation: none; }
+  .mill.pop, .mill.crush .sail, .spin, .pill.in { animation: none; }
   .pill.in { clip-path: none; }
-  .pill { transition: none; }
 }
 </style>
 </head>
@@ -178,10 +129,8 @@ svg.word { width: min(860px, 92vw); height: auto; overflow: visible; display: bl
 
   <div class="cta-slot">
     <button class="pill" id="signin" type="button">
-      <span class="glass"></span><span class="light"></span><span class="gloss"></span>
       <svg viewBox="0 0 16 16" aria-hidden="true"><path fill="currentColor" d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0 0 16 8c0-4.42-3.58-8-8-8z"/></svg>
       <span class="label">Sign in with GitHub</span>
-      <span class="rim"></span>
     </button>
   </div>
 </main>
@@ -290,7 +239,6 @@ svg.word { width: min(860px, 92vw); height: auto; overflow: visible; display: bl
   function play() {
     timers.forEach(clearTimeout); timers = [];
     pill.classList.remove("in", "done");
-    holo.classList.remove("in");
     build();
 
     later(() => {
@@ -326,110 +274,142 @@ svg.word { width: min(860px, 92vw); height: auto; overflow: visible; display: bl
       pill.classList.add("in");
       later(() => pill.classList.add("done"), 220);
     }, at + 280);
-    later(() => { holo.classList.add("in"); startHologram(); }, at + 620);
+    later(() => startHologram(), at + 620);
   }
 
-  // ---------- liquid glass: the pill leans toward the pointer ----------
-  pill.addEventListener("pointermove", e => {
-    const r = pill.getBoundingClientRect();
-    const px = (e.clientX - r.left) / r.width, py = (e.clientY - r.top) / r.height;
-    pill.style.setProperty("--mx", `${(px * 100).toFixed(1)}%`);
-    pill.style.setProperty("--my", `${(py * 100).toFixed(1)}%`);
-    pill.style.setProperty("--tx", `${((px - .5) * 6).toFixed(2)}px`);
-    pill.style.setProperty("--ty", `${((py - .5) * 4).toFixed(2)}px`);
-    pill.style.setProperty("--sx", (1.03 + Math.abs(px - .5) * .03).toFixed(3));
-    pill.style.setProperty("--sy", (1.03 - Math.abs(px - .5) * .02).toFixed(3));
-  });
-  pill.addEventListener("pointerleave", () => {
-    ["--mx", "--my", "--tx", "--ty", "--sx", "--sy"].forEach(p => pill.style.removeProperty(p));
-  });
   // Hook for the app shell: listen for this event to start the GitHub sign-in flow.
   pill.addEventListener("click", () => window.dispatchEvent(new CustomEvent("windmill:signin")));
 
-  // ---------- hologram (three.js) ----------
+  // ---------- hologram (three.js): a wireframe field with a lattice windmill on it ----------
   let holoStarted = false;
   function startHologram() {
     if (holoStarted || !window.THREE) return;
     holoStarted = true;
-    const T = THREE, BLUE = new T.Color(0x0141FD);
+    const T = THREE, BLUE = 0x0141FD;
     const canvas = $("holoCanvas");
+    const W = canvas.clientWidth || 400, H = canvas.clientHeight || 250;
     const renderer = new T.WebGLRenderer({ canvas, alpha: true, antialias: true });
     renderer.setPixelRatio(Math.min(devicePixelRatio || 1, 2));
-    renderer.setSize(168, 168, false);
+    renderer.setSize(W, H, false);
     const scene = new T.Scene();
-    const camera = new T.PerspectiveCamera(30, 1, 0.1, 50);
-    camera.position.set(0, 1.9, 5.6);
-    camera.lookAt(0, 0.62, 0);
-
-    const line = (opacity) => new T.LineBasicMaterial({ color: BLUE, transparent: true, opacity, depthWrite: false });
-
-    // the field: a polar grid, a ring of points and an outer ring
-    const grid = new T.PolarGridHelper(1.55, 16, 4, 64, BLUE, BLUE);
-    grid.material.transparent = true; grid.material.opacity = 0.32; grid.material.depthWrite = false;
-    scene.add(grid);
-    const ringPts = [];
-    for (let i = 0; i < 64; i++) { const a = i / 64 * Math.PI * 2; ringPts.push(new T.Vector3(Math.cos(a) * 1.72, 0, Math.sin(a) * 1.72)); }
-    const ring = new T.Points(new T.BufferGeometry().setFromPoints(ringPts),
-      new T.PointsMaterial({ color: BLUE, size: 0.045, transparent: true, opacity: 0.8, depthWrite: false }));
-    scene.add(ring);
-
-    // the projection beam
-    const beam = new T.Mesh(
-      new T.CylinderGeometry(0.62, 1.25, 1.5, 48, 1, true),
-      new T.ShaderMaterial({
-        transparent: true, depthWrite: false, side: T.DoubleSide,
-        uniforms: { c: { value: BLUE } },
-        vertexShader: "varying float v; void main(){ v = uv.y; gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.0); }",
-        fragmentShader: "uniform vec3 c; varying float v; void main(){ gl_FragColor = vec4(c, (1.0 - v) * 0.16); }",
-      }));
-    beam.position.y = 0.75;
-    scene.add(beam);
-
-    // the windmill: the same mark as the i dot, extruded
-    const mill = new T.Group();
-    const sails = new T.Group();
-    const fill = new T.MeshBasicMaterial({ color: BLUE, transparent: true, opacity: 0.22, depthWrite: false, side: T.DoubleSide });
-    const pts = BLADE.split(" ").map(p => p.split(",").map(Number)).map(([x, y]) => new T.Vector2((x - 50) / 50, -(y - 50) / 50));
-    const bladeGeo = new T.ExtrudeGeometry(new T.Shape(pts), { depth: 0.14, bevelEnabled: false });
-    bladeGeo.translate(0, 0, -0.07);
-    [0, 1, 2, 3].forEach(k => {
-      const b = new T.Group();
-      b.add(new T.Mesh(bladeGeo, fill));
-      b.add(new T.LineSegments(new T.EdgesGeometry(bladeGeo), line(0.95)));
-      b.rotation.z = -k * Math.PI / 2;
-      sails.add(b);
-    });
-    const coreGeo = new T.CylinderGeometry(0.17, 0.17, 0.18, 24);
-    coreGeo.rotateX(Math.PI / 2);
-    const core = new T.Group();
-    core.add(new T.Mesh(coreGeo, new T.MeshBasicMaterial({ color: BLUE, transparent: true, opacity: 0.55, depthWrite: false })));
-    core.add(new T.LineSegments(new T.EdgesGeometry(coreGeo, 40), line(0.95)));
-    mill.add(sails, core);
-    mill.scale.setScalar(0.52);
-    mill.position.y = 1.0;
-    mill.rotation.y = -0.38;
-    scene.add(mill);
-    // the stalk from the field to the hub
-    scene.add(new T.Line(new T.BufferGeometry().setFromPoints([new T.Vector3(0, 0, 0), new T.Vector3(0, 1.0, 0)]), line(0.5)));
-
+    scene.fog = new T.Fog(0xffffff, 6, 13.5);
+    const camera = new T.PerspectiveCamera(30, W / H, 0.1, 40);
+    camera.position.set(-3.3, 2.5, 5.9);
+    camera.lookAt(1.9, 0.95, -0.7);
     const render = () => renderer.render(scene, camera);
-    render();
-    if (reduce) return;
 
-    // three frames per quarter turn: snappy steps, calm pace
-    setInterval(() => {
-      sails.rotation.z += Math.PI / 6;
-      grid.rotation.y += Math.PI / 96;
-      render();
-    }, 460);
-
-    // the odd flicker
-    const flicker = () => {
-      holo.classList.remove("in", "blink"); void holo.offsetWidth;
-      holo.classList.add("blink");
-      setTimeout(flicker, 3500 + Math.random() * 4500);
+    const lineMat = (opacity, fog = true) => new T.LineBasicMaterial({ color: BLUE, transparent: true, opacity, fog });
+    const ground = (x, z) => 0.11 * Math.sin(x * 0.8 + 0.7) + 0.07 * Math.cos(z * 1.3 + x * 0.35) - 0.04;
+    const toGeo = list => {
+      const a = new Float32Array(list.length * 6);
+      list.forEach((sg, i) => a.set([...sg[0], ...sg[1]], i * 6));
+      const g = new T.BufferGeometry(); g.setAttribute("position", new T.BufferAttribute(a, 3));
+      return g;
     };
-    setTimeout(flicker, 4000);
+
+    // the field: a gently rolling grid, ordered by distance so it can grow out from the tower
+    const X0 = -2.5, X1 = 8, Z0 = -3, Z1 = 2.5, CELL = 0.5, SUB = 0.125;
+    const segs = [];
+    const P = (x, z) => [x, ground(x, z), z];
+    for (let z = Z0; z <= Z1 + 1e-6; z += CELL)
+      for (let x = X0; x < X1 - 1e-6; x += SUB) segs.push([P(x, z), P(x + SUB, z), Math.hypot(x + SUB / 2, z)]);
+    for (let x = X0; x <= X1 + 1e-6; x += CELL)
+      for (let z = Z0; z < Z1 - 1e-6; z += SUB) segs.push([P(x, z), P(x, z + SUB), Math.hypot(x, z + SUB / 2)]);
+    segs.sort((a, b) => a[2] - b[2]);
+    const fieldGeo = toGeo(segs);
+    fieldGeo.setDrawRange(0, 0);
+    scene.add(new T.LineSegments(fieldGeo, lineMat(0.55)));
+
+    // the tower: four tapering legs with rings and cross-bracing, built level by level
+    const BASE = 0.44, TOP = 0.07, TALL = 2.25, LEVELS = 6, y0 = ground(0, 0);
+    const corners = [[-1, -1], [1, -1], [1, 1], [-1, 1]];
+    const at = (c, t) => {
+      const w = BASE + (TOP - BASE) * t;
+      return [c[0] * w, y0 + TALL * t, c[1] * w];
+    };
+    const towerSegs = [], levelEnds = [];
+    corners.forEach((c, i) => towerSegs.push([at(c, 0), at(corners[(i + 1) % 4], 0)]));
+    for (let L = 0; L < LEVELS; L++) {
+      const t0 = L / LEVELS, t1 = (L + 1) / LEVELS;
+      corners.forEach((c, i) => {
+        const n = corners[(i + 1) % 4];
+        towerSegs.push([at(c, t0), at(c, t1)]);         // leg
+        towerSegs.push([at(c, t1), at(n, t1)]);         // ring
+        towerSegs.push([at(c, t0), at(n, t1)]);         // brace
+        towerSegs.push([at(n, t0), at(c, t1)]);         // brace
+      });
+      levelEnds.push(towerSegs.length * 2);
+    }
+    const towerGeo = toGeo(towerSegs);
+    towerGeo.setDrawRange(0, 0);
+    scene.add(new T.LineSegments(towerGeo, lineMat(0.95, false)));
+
+    // the head: the Windmill mark as the wheel, with a shaft and a tail vane
+    const head = new T.Group();
+    head.position.set(0, y0 + TALL + 0.04, 0);
+    head.rotation.y = -0.62;
+    const wheel = new T.Group();
+    wheel.position.z = 0.2;
+    const pts = BLADE.split(" ").map(p => p.split(",").map(Number)).map(([x, y]) => new T.Vector2((x - 50) / 50, -(y - 50) / 50));
+    const bladeGeo = new T.ExtrudeGeometry(new T.Shape(pts), { depth: 0.1, bevelEnabled: false });
+    bladeGeo.translate(0, 0, -0.05);
+    const fill = new T.MeshBasicMaterial({ color: BLUE, transparent: true, opacity: 0.2, depthWrite: false, side: T.DoubleSide, fog: false });
+    for (let k = 0; k < 4; k++) {
+      const b = new T.Group();
+      b.add(new T.Mesh(bladeGeo, fill), new T.LineSegments(new T.EdgesGeometry(bladeGeo), lineMat(1, false)));
+      b.rotation.z = -k * Math.PI / 2;
+      wheel.add(b);
+    }
+    const coreGeo = new T.CylinderGeometry(0.17, 0.17, 0.14, 20); coreGeo.rotateX(Math.PI / 2);
+    wheel.add(new T.Mesh(coreGeo, new T.MeshBasicMaterial({ color: BLUE, transparent: true, opacity: 0.6, fog: false })));
+    wheel.scale.setScalar(0.5);
+    const vane = new T.Shape([new T.Vector2(0, 0), new T.Vector2(0.55, 0.16), new T.Vector2(0.55, -0.2), new T.Vector2(0, -0.04)]);
+    const vaneGeo = new T.ShapeGeometry(vane); vaneGeo.rotateY(Math.PI / 2); vaneGeo.translate(0, 0, -0.32);
+    head.add(
+      wheel,
+      new T.LineSegments(toGeo([[[0, 0, 0.2], [0, 0, -0.32]]]), lineMat(1, false)),
+      new T.Mesh(vaneGeo, fill),
+      new T.LineSegments(new T.EdgesGeometry(vaneGeo), lineMat(1, false)),
+    );
+    head.scale.setScalar(0);
+    scene.add(head);
+
+    // a pulse that ripples out from the foot of the tower now and then
+    const ringPts = [];
+    for (let i = 0; i <= 72; i++) { const a = i / 72 * Math.PI * 2; ringPts.push(new T.Vector3(Math.cos(a), 0, Math.sin(a))); }
+    const pulseMat = lineMat(0, true); pulseMat.depthTest = false;
+    const pulse = new T.Line(new T.BufferGeometry().setFromPoints(ringPts), pulseMat);
+    pulse.position.y = y0 + 0.02;
+    scene.add(pulse);
+
+    holo.classList.add("in");
+    if (reduce) {
+      fieldGeo.setDrawRange(0, segs.length * 2);
+      towerGeo.setDrawRange(0, towerSegs.length * 2);
+      head.scale.setScalar(1);
+      return render();
+    }
+
+    // build-up: the field spreads from the tower in hard steps, then the tower stacks, then the wheel pops on
+    const FIELD_STEPS = 7;
+    for (let k = 1; k <= FIELD_STEPS; k++)
+      setTimeout(() => { fieldGeo.setDrawRange(0, Math.round(segs.length * 2 * (k / FIELD_STEPS) ** 1.6)); render(); }, k * 60);
+    const tTower = 220;
+    levelEnds.forEach((end, L) => setTimeout(() => { towerGeo.setDrawRange(0, end); render(); }, tTower + L * 65));
+    const tHead = tTower + LEVELS * 65 + 40;
+    [1.3, 0.92, 1].forEach((sc, i) => setTimeout(() => { head.scale.setScalar(sc); render(); }, tHead + i * 50));
+
+    // three frames per quarter turn: snappy, calm
+    setTimeout(() => setInterval(() => { wheel.rotation.z += Math.PI / 6; render(); }, 380), tHead + 300);
+
+    const ripple = () => {
+      [0.35, 0.8, 1.3, 1.85, 2.45, 3.1].forEach((r, i) => setTimeout(() => {
+        pulse.scale.setScalar(r); pulseMat.opacity = 0.8 * (1 - i / 6); render();
+      }, i * 75));
+      setTimeout(() => { pulseMat.opacity = 0; render(); }, 6 * 75);
+    };
+    setTimeout(() => { ripple(); setInterval(ripple, 3600); }, tHead + 700);
+    render();
   }
 
   // ---------- go ----------
@@ -446,7 +426,7 @@ svg.word { width: min(860px, 92vw); height: auto; overflow: visible; display: bl
   });
 
   // Press R to replay while working on the intro.
-  addEventListener("keydown", e => { if (e.key === "r" || e.key === "R") { holo.classList.remove("in", "blink"); play(); } });
+  addEventListener("keydown", e => { if (e.key === "r" || e.key === "R") play(); });
 })();
 </script>
 </body>
