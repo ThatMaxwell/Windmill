@@ -151,17 +151,24 @@ jobs:
           path: dist
           merge-multiple: true
 
+      - name: Files to publish
+        run: find dist -type f
+
       - uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ github.ref_type == 'tag' && github.ref_name || inputs.release_tag }}
           target_commitish: ${{ github.sha }}
           name: Windmill ${{ github.ref_type == 'tag' && github.ref_name || inputs.release_tag }}
-          files: dist/*
+          files: |
+            dist/**/Windmill-Windows-Setup.exe
+            dist/**/*.msi
+            dist/**/*.apk
+          fail_on_unmatched_files: true
           generate_release_notes: true
           body: |
             The first preview of Windmill for Windows and Android.
 
-            **Windows:** download `Windmill_..._x64-setup.exe` and run it. Windows may warn that the
+            **Windows:** download `Windmill-Windows-Setup.exe` and run it. Windows may warn that the
             installer isn't signed yet: choose **More info -> Run anyway**. Press **Ctrl + Win** any time
             for the Windmill panel.
 
