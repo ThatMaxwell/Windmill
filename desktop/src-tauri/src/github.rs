@@ -8,10 +8,12 @@ use serde::Serialize;
 use serde_json::Value;
 use tauri::{AppHandle, Manager, Runtime};
 
-const CLIENT_ID: &str = "";
+/// Windmill's OAuth App (public; the device flow needs no secret).
+const CLIENT_ID: &str = "Ov23liKp9NhxyU6dlyLM";
 
 fn client_id() -> Option<&'static str> {
-    let id = option_env!("WINDMILL_GITHUB_CLIENT_ID").unwrap_or(CLIENT_ID).trim();
+    // A build-time value wins, unless it's empty (the build passes an empty one when it isn't set).
+    let id = option_env!("WINDMILL_GITHUB_CLIENT_ID").map(str::trim).filter(|s| !s.is_empty()).unwrap_or(CLIENT_ID).trim();
     (!id.is_empty()).then_some(id)
 }
 

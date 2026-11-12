@@ -148,7 +148,7 @@ npx tauri android build --apk
 
 ### Sign in with GitHub
 
-Create a [GitHub OAuth App](https://github.com/settings/developers) with **Enable Device Flow** ticked, then build with its Client ID in `WINDMILL_GITHUB_CLIENT_ID` (or set it as a repository variable of the same name and the release workflow uses it). Without it, the sign-in button simply says **Continue**.
+Windmill uses its own GitHub OAuth App (device flow, so there is no secret anywhere). Its public Client ID is in `desktop/src-tauri/src/github.rs`. To use your own app instead, create a [GitHub OAuth App](https://github.com/settings/developers) with **Enable Device Flow** ticked and build with its Client ID in `WINDMILL_GITHUB_CLIENT_ID` (or set a repository variable of that name).
 
 ### The interface without building anything
 
