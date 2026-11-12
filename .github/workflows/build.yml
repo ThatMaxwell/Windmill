@@ -2,7 +2,8 @@ name: Build Windmill
 
 # Builds the Windows installers and the Android app.
 # - Every push to main: builds both and keeps them as downloadable workflow artifacts.
-# - A tag like v0.1.0: also publishes them on the repository's Releases page.
+# - A tag like v0.1.0, or running it by hand with a release tag: also publishes them on the
+#   repository's Releases page (the tag is created if it doesn't exist).
 
 on:
   push:
@@ -13,6 +14,11 @@ on:
       - "docs/**"
       - ".github/workflows/build.yml"
   workflow_dispatch:
+    inputs:
+      release_tag:
+        description: "Publish a release with this tag (for example v0.1.0). Leave empty to only build."
+        required: false
+        default: ""
 
 permissions:
   contents: write
@@ -131,7 +137,7 @@ jobs:
 
   release:
     name: Publish release
-    if: startsWith(github.ref, 'refs/tags/v')
+    if: startsWith(github.ref, 'refs/tags/v') || (github.event_name == 'workflow_dispatch' && inputs.release_tag != '')
     needs: [windows, android]
     runs-on: ubuntu-latest
     steps:
@@ -142,5 +148,18 @@ jobs:
 
       - uses: softprops/action-gh-release@v2
         with:
+          tag_name: ${{ github.ref_type == 'tag' && github.ref_name || inputs.release_tag }}
+          target_commitish: ${{ github.sha }}
+          name: Windmill ${{ github.ref_type == 'tag' && github.ref_name || inputs.release_tag }}
           files: dist/*
           generate_release_notes: true
+          body: |
+            The first preview of Windmill for Windows and Android.
+
+            **Windows:** download `Windmill_..._x64-setup.exe` and run it. Windows may warn that the
+            installer isn't signed yet: choose **More info -> Run anyway**. Press **Ctrl + Win** any time
+            for the Windmill panel.
+
+            **Android:** download `Windmill-Android.apk` on your phone and open it (allow installing
+            from your browser when asked). On your PC, open Windmill -> Phone -> Let my phone connect,
+            then type the address and code into the phone.
