@@ -99,13 +99,29 @@ jobs:
         run: |
           npx tauri android init --ci
           python3 android/patch.py
-          npx tauri android build --apk --debug --target aarch64 --target armv7 --ci
+          npx tauri android build --apk --target aarch64 --target armv7 --ci
 
-      - name: Collect
+      # Sign the release APK. With the ANDROID_KEYSTORE_B64 / ANDROID_KEYSTORE_PASSWORD secrets set,
+      # every build uses your own key (so updates install over each other); without them a
+      # one-off key is made for this build.
+      - name: Sign
+        env:
+          KEYSTORE_B64: ${{ secrets.ANDROID_KEYSTORE_B64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
         run: |
+          BT=$(ls -d "$ANDROID_HOME"/build-tools/* | sort -V | tail -1)
+          if [ -n "$KEYSTORE_B64" ]; then
+            echo "$KEYSTORE_B64" | base64 -d > ks.jks; PASS="$KEYSTORE_PASSWORD"
+          else
+            PASS=windmill-build
+            keytool -genkeypair -keystore ks.jks -storepass "$PASS" -keypass "$PASS" -alias windmill \
+              -keyalg RSA -keysize 2048 -validity 10000 -dname "CN=Windmill"
+          fi
           mkdir -p out
-          find src-tauri/gen/android -name "*.apk" -path "*outputs*" -exec cp {} out/ \;
-          cd out && for f in *.apk; do mv "$f" "Windmill-${f}"; done; ls -la
+          APK=$(find src-tauri/gen/android -name "*release-unsigned.apk" -path "*outputs*" | head -1)
+          "$BT/zipalign" -f 4 "$APK" aligned.apk
+          "$BT/apksigner" sign --ks ks.jks --ks-pass pass:"$PASS" --ks-key-alias windmill --out out/Windmill-Android.apk aligned.apk
+          ls -la out
 
       - uses: actions/upload-artifact@v4
         with:
