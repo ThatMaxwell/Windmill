@@ -39,7 +39,7 @@ fn hwnd(id: isize) -> Result<HWND, String> {
     }
 }
 
-unsafe fn exe_path(h: HWND) -> String {
+pub(crate) unsafe fn exe_path(h: HWND) -> String {
     let mut pid = 0u32;
     GetWindowThreadProcessId(h, Some(&mut pid));
     let Ok(proc_) = OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, false, pid) else { return String::new() };
@@ -54,7 +54,7 @@ unsafe fn exe_path(h: HWND) -> String {
     path
 }
 
-unsafe fn is_app_window(h: HWND, me: u32) -> bool {
+pub(crate) unsafe fn is_app_window(h: HWND, me: u32) -> bool {
     if !IsWindowVisible(h).as_bool() || GetWindowTextLengthW(h) == 0 {
         return false;
     }

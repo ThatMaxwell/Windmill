@@ -42,6 +42,14 @@ html.dark .os-icon:hover { background: rgba(255,255,255,.08); }
 }
 html.dark .os-tag { color: #9bb3ff; background: rgba(111,147,255,.16); }
 .app-ico { width: 100%; height: 100%; object-fit: contain; display: block; }
+.app-plate {
+  width: 100%; height: 100%; display: grid; place-items: center; overflow: hidden; border-radius: 23%;
+  background: linear-gradient(180deg, #ffffff, #eef1f6); box-shadow: inset 0 0 0 1px rgba(20,24,40,.08), inset 0 1px 0 #fff;
+}
+.app-plate .app-ico { width: 72%; height: 72%; filter: drop-shadow(0 1px 1.5px rgba(20,24,40,.18)); }
+html.dark .app-plate { background: linear-gradient(180deg, #30333b, #24262d); box-shadow: inset 0 0 0 1px rgba(255,255,255,.08); }
+.lapp .li .app-plate { width: 58px; height: 58px; }
+.g-icons .app-plate { border-radius: 8px; }
 .os-pop {
   opacity: 0; scale: .94; translate: 0 -8px; visibility: hidden; pointer-events: none;
   transition: opacity .16s ease, scale .28s cubic-bezier(.4, 0, 1, 1), translate .28s cubic-bezier(.4, 0, 1, 1), visibility 0s linear .28s;

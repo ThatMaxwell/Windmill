@@ -345,6 +345,21 @@ pub fn screen_time() -> Res<serde_json::Value> {
     unsupported()
 }
 
+// ---------- how Windmill treats other apps ----------
+
+#[tauri::command]
+pub fn set_shell_options(apps_full_screen: bool, global_search: bool, edge_dock: bool) -> Res<()> {
+    #[cfg(windows)]
+    {
+        use std::sync::atomic::Ordering;
+        win::hotkey::APPS_FULL_SCREEN.store(apps_full_screen, Ordering::SeqCst);
+        win::hotkey::GLOBAL_SEARCH.store(global_search, Ordering::SeqCst);
+        win::hotkey::EDGE_DOCK.store(edge_dock, Ordering::SeqCst);
+    }
+    let _ = (apps_full_screen, global_search, edge_dock);
+    Ok(())
+}
+
 // ---------- Windmill's own window ----------
 
 #[tauri::command]

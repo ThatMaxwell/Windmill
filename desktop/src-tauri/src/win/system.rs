@@ -173,6 +173,7 @@ static SAVED_WORK_AREA: Mutex<Option<(i32, i32, i32, i32)>> = Mutex::new(None);
 /// goes to your apps too, so a maximized app fills the screen. Bringing it back restores
 /// the space exactly as it was.
 pub fn set_taskbar_hidden(hidden: bool) {
+    super::hotkey::FULL_SCREEN.store(hidden, std::sync::atomic::Ordering::SeqCst);
     unsafe {
         for class in [w!("Shell_TrayWnd"), w!("Shell_SecondaryTrayWnd")] {
             if let Ok(h) = FindWindowW(class, None) {
