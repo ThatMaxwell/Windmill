@@ -44,18 +44,10 @@ svg.word { width: min(860px, 92vw); height: auto; overflow: visible; display: bl
   fill: var(--blue);
 }
 .core, .sail, .tittle { fill: var(--blue); }
-.dot, .mill { transform-box: fill-box; transform-origin: center; }
-.dot { transform: scale(0); }
-.dot.on { transform: scale(1); }
-.mill { transform: scale(0); }
-.mill.pop { animation: millpop .15s steps(3, jump-none) forwards; }
-.mill .sail { transform-box: view-box; transform-origin: 50px 50px; }
-.mill.crush { translate: 0px 0px !important; transition: translate .18s steps(3, jump-none); }
-.mill.crush .sail { animation: crush .18s steps(3, jump-none) forwards; }
-.spin { transform-box: view-box; animation: tick .3s steps(3, jump-end) 3; }
-@keyframes millpop { 0% { transform: scale(0) rotate(-40deg) } 60% { transform: scale(1.2) rotate(8deg) } 100% { transform: scale(1) rotate(0) } }
-@keyframes crush   { from { transform: scale(1) } to { transform: scale(0) } }
-@keyframes tick    { from { transform: rotate(0deg) } to { transform: rotate(-90deg) } }
+/* the i dots and the little windmill are moved with SVG transform attributes from script,
+   so they behave the same in every browser */
+.dot { visibility: hidden; }
+.dot.on { visibility: visible; }
 
 /* ---------- Sign in with GitHub ---------- */
 .cta-slot { position: relative; height: 60px; display: grid; place-items: center; }
@@ -162,7 +154,7 @@ svg.word { width: min(860px, 92vw); height: auto; overflow: visible; display: bl
 .holo.in { visibility: visible; }
 
 @media (prefers-reduced-motion: reduce) {
-  .mill.pop, .mill.crush .sail, .spin, .pill.in { animation: none; }
+  .pill.in { animation: none; }
   .pill.in { clip-path: none; }
 }
 </style>
@@ -264,22 +256,38 @@ svg.word { width: min(860px, 92vw); height: auto; overflow: visible; display: bl
       dot.setAttribute("class", "tittle dot");
       dot.setAttribute("rx", tittle.rx.toFixed(2)); dot.setAttribute("ry", tittle.ry.toFixed(2));
       dw.appendChild(dot); g.appendChild(dw);
-      let mill = null, spinner = null;
+      let mill = null;
       if (n === 0) {
+        // mill (lift, pop) > scaler (size, centre) > spinner (turn) > blades (crush)
         const s = (tittle.size * 3.0) / 100;
-        mill = document.createElementNS(NS, "g"); mill.setAttribute("class", "mill");
-        mill.style.translate = `0px ${(-tittle.size * 0.6).toFixed(2)}px`;
+        const lift = -tittle.size * 0.6;
+        const root = document.createElementNS(NS, "g");
         const scaler = document.createElementNS(NS, "g");
         scaler.setAttribute("transform", `scale(${s.toFixed(3)}) translate(-50 -50)`);
-        spinner = document.createElementNS(NS, "g");
-        spinner.innerHTML =
-          [0, 90, 180, 270].map(a => `<g transform="rotate(${a} 50 50)"><polygon class="sail" points="${BLADE}"/></g>`).join("") +
-          `<circle class="core" cx="50" cy="50" r="${(Math.max(tittle.rx, tittle.ry) / s).toFixed(2)}"/>`;
-        spinner.style.transformOrigin = "50px 50px";
-        scaler.appendChild(spinner); mill.appendChild(scaler); g.appendChild(mill);
+        const spinner = document.createElementNS(NS, "g");
+        const blades = [0, 90, 180, 270].map(a => {
+          const b = document.createElementNS(NS, "g");
+          b.dataset.a = a;
+          b.setAttribute("transform", `rotate(${a} 50 50)`);
+          b.innerHTML = `<polygon class="sail" points="${BLADE}"/>`;
+          spinner.appendChild(b);
+          return b;
+        });
+        const core = document.createElementNS(NS, "circle");
+        core.setAttribute("class", "core"); core.setAttribute("cx", 50); core.setAttribute("cy", 50);
+        core.setAttribute("r", (Math.max(tittle.rx, tittle.ry) / s).toFixed(2));
+        spinner.appendChild(core);
+        scaler.appendChild(spinner); root.appendChild(scaler); g.appendChild(root);
+        mill = {
+          root, spinner, blades, lift,
+          pose(k, rot = 0, liftK = 1) { root.setAttribute("transform", `translate(0 ${(lift * liftK).toFixed(2)}) rotate(${rot}) scale(${k})`); },
+          turn(deg) { spinner.setAttribute("transform", `rotate(${deg} 50 50)`); },
+          squeeze(k) { blades.forEach(b => b.setAttribute("transform", `rotate(${b.dataset.a} 50 50) translate(50 50) scale(${k}) translate(-50 -50)`)); },
+        };
+        mill.pose(0);
       }
       dotsG.appendChild(g);
-      dots.push({ dot, mill, spinner });
+      dots.push({ dot, mill });
     });
   }
 
@@ -314,12 +322,18 @@ svg.word { width: min(860px, 92vw); height: auto; overflow: visible; display: bl
 
       const first = dots[0];
       if (!first || !first.mill) return outro(tDots + 400);
-      const tMill = tDots + 650;
-      later(() => { first.dot.classList.remove("on"); first.mill.classList.add("pop"); }, tMill);
-      later(() => { first.spinner.classList.add("spin"); }, tMill + 260);
-      const tBack = tMill + 260 + 3 * 300 + 120;
-      later(() => { first.spinner.classList.remove("spin"); first.mill.classList.add("crush"); }, tBack);
-      later(() => { first.mill.classList.remove("pop", "crush"); first.dot.classList.add("on"); }, tBack + 180);
+      const m = first.mill, tMill = tDots + 650;
+      // pop: the dot turns into the windmill in three hard frames
+      later(() => { first.dot.classList.remove("on"); m.pose(.6, -40); }, tMill);
+      later(() => m.pose(1.2, 8), tMill + 50);
+      later(() => m.pose(1, 0), tMill + 100);
+      // turn: 30 degree jumps, counter-clockwise, three quarters of a turn
+      const tTurn = tMill + 260;
+      for (let k = 1; k <= 9; k++) later(() => m.turn(-30 * k), tTurn + (k - 1) * 100);
+      // crush: the sails are pushed into the hub, which drops back onto the stem as the dot
+      const tBack = tTurn + 9 * 100 + 120;
+      [[.66, .66], [.33, .33], [0, 0]].forEach(([k, l], i) => later(() => { m.squeeze(k); m.pose(1, 0, l); }, tBack + i * 60));
+      later(() => { m.pose(0); m.squeeze(1); m.turn(0); first.dot.classList.add("on"); }, tBack + 180);
       outro(tBack + 180);
     }, 1000);
   }
