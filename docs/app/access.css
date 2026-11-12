@@ -1,0 +1,158 @@
+/* Windmill accessibility: reading fonts and the looks behind Settings -> Accessibility.
+   Each setting is a class on <html>, set by access.js before anything is drawn. */
+
+/* ---------- fonts (SIL Open Font License, see fonts/) ---------- */
+@font-face {
+  font-family: "OpenDyslexic"; font-style: normal; font-weight: 400; font-display: swap; size-adjust: 92%;
+  src: url(fonts/opendyslexic-latin-400-normal.woff2) format("woff2");
+}
+@font-face {
+  font-family: "OpenDyslexic"; font-style: normal; font-weight: 700; font-display: swap; size-adjust: 92%;
+  src: url(fonts/opendyslexic-latin-700-normal.woff2) format("woff2");
+}
+@font-face {
+  font-family: "Atkinson Hyperlegible Next"; font-style: normal; font-weight: 400; font-display: swap;
+  src: url(fonts/atkinson-hyperlegible-next-latin-400-normal.woff2) format("woff2");
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: "Atkinson Hyperlegible Next"; font-style: normal; font-weight: 700; font-display: swap;
+  src: url(fonts/atkinson-hyperlegible-next-latin-700-normal.woff2) format("woff2");
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: "Atkinson Hyperlegible Next"; font-style: normal; font-weight: 400; font-display: swap;
+  src: url(fonts/atkinson-hyperlegible-next-latin-ext-400-normal.woff2) format("woff2");
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+@font-face {
+  font-family: "Atkinson Hyperlegible Next"; font-style: normal; font-weight: 700; font-display: swap;
+  src: url(fonts/atkinson-hyperlegible-next-latin-ext-700-normal.woff2) format("woff2");
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+
+/* the reading font replaces every font in Windmill, except the Windmill name itself */
+html.a-font-dys {
+  --sans: "OpenDyslexic", "Inter", "Segoe UI", system-ui, sans-serif;
+  --serif: "OpenDyslexic", "Inter", "Segoe UI", system-ui, sans-serif;
+}
+html.a-font-atk {
+  --sans: "Atkinson Hyperlegible Next", "Inter", "Segoe UI", system-ui, sans-serif;
+  --serif: "Atkinson Hyperlegible Next", "Inter", "Segoe UI", system-ui, sans-serif;
+}
+html:is(.a-font-dys, .a-font-atk) :is(svg.word, .welcome text, .about .name, .brandword) {
+  font-family: "Piazzolla", "Iowan Old Style", Georgia, serif !important;
+}
+/* OpenDyslexic is taller than Inter: give single-line text a little more room */
+html.a-font-dys :is(.srow, .sec, .chip, .os-btn, .item, .tip) { line-height: 1.25; }
+
+/* ---------- wider spacing (British Dyslexia Association style guide) ---------- */
+html.a-space :where(body *:not(svg, svg *, .brandword)) { letter-spacing: .035em !important; word-spacing: .16em !important; }
+html.a-space :is(p, li, .lead, .sub2, .note, .pnote, .prevnote, .steps, .pop p, .toast span, .a-note) { line-height: 1.75 !important; }
+
+/* ---------- bold text ---------- */
+html.a-bold :where(body *:not(svg, svg *, .brandword)) { font-weight: 600 !important; }
+html.a-bold :is(b, strong, h1, h2, h3, .panel h3, .sec.on, .chip.on) { font-weight: 700 !important; }
+
+/* ---------- increase contrast ---------- */
+html.a-contrast { --glass-ink: #000; --glass-sub: #2e3139; }
+html.a-contrast.dark { --glass-ink: #fff; --glass-sub: #dde1ea; }
+html.a-contrast .glass { outline: 1.5px solid rgba(0, 0, 0, .62); outline-offset: -1.5px; }
+html.a-contrast.dark .glass { outline-color: rgba(255, 255, 255, .62); }
+html.a-contrast .glass:not(.lensed) { background: linear-gradient(180deg, rgba(255,255,255,.95), rgba(246,247,250,.92)); }
+html.a-contrast.dark .glass:not(.lensed) { background: linear-gradient(180deg, rgba(24,27,34,.96), rgba(18,20,26,.94)); }
+html.a-contrast .rows, html.a-contrast .cprev, html.a-contrast .wprev, html.a-contrast .a-fprev { box-shadow: 0 0 0 1.5px rgba(0,0,0,.45); }
+html.a-contrast.dark .rows, html.a-contrast.dark .cprev, html.a-contrast.dark .wprev, html.a-contrast.dark .a-fprev { box-shadow: 0 0 0 1.5px rgba(255,255,255,.45); }
+html.a-contrast .srow + .srow { border-top-color: rgba(0,0,0,.22); }
+html.a-contrast.dark .srow + .srow { border-top-color: rgba(255,255,255,.24); }
+html.a-contrast .sw { box-shadow: inset 0 0 0 1.5px rgba(0,0,0,.55); }
+html.a-contrast.dark .sw { box-shadow: inset 0 0 0 1.5px rgba(255,255,255,.55); }
+html.a-contrast .chip:not(.on) { box-shadow: inset 0 0 0 1.5px rgba(0,0,0,.5); }
+html.a-contrast.dark .chip:not(.on) { box-shadow: inset 0 0 0 1.5px rgba(255,255,255,.5); }
+
+/* ---------- solid surfaces (reduce transparency) ---------- */
+html.a-solid .glass, html.a-solid .glass.lensed {
+  background: #f6f7f9 !important;
+  -webkit-backdrop-filter: none !important; backdrop-filter: none !important;
+}
+html.a-solid.dark .glass, html.a-solid.dark .glass.lensed { background: #181b22 !important; }
+html.a-solid .glass::after { display: none; }
+
+/* ---------- grayscale ---------- */
+html.a-gray { filter: grayscale(1); }
+
+/* ---------- a clear keyboard focus ring ---------- */
+html.a-focus :focus-visible {
+  outline: 3px solid var(--blue) !important; outline-offset: 3px !important;
+  box-shadow: 0 0 0 7px rgba(var(--blue-rgb), .3) !important;
+}
+
+/* ---------- app names under the dock icons ---------- */
+html.a-labels .dock { padding-bottom: 30px; }
+html.a-labels .dock .tile::before {
+  content: attr(data-label);
+  position: absolute; left: 50%; top: calc(100% + 9px); translate: -50% 0;
+  max-width: 76px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  font: 500 11px/1.2 var(--sans); color: var(--glass-ink); pointer-events: none;
+}
+
+/* ---------- screen tint and the reading guide ---------- */
+.a-layer { position: fixed; inset: 0; pointer-events: none; z-index: 2147483000; display: none; }
+html.a-tint .a-tint { display: block; background: var(--a-tint); mix-blend-mode: multiply; }
+html.a-tint.dark .a-tint { opacity: .55; mix-blend-mode: soft-light; }
+html.a-guide .a-guide.on { display: block; }
+.a-guide {
+  --gy: 50%; --band: 44px; --dim: rgba(10, 12, 22, .24);
+  background: linear-gradient(to bottom,
+    var(--dim) 0, var(--dim) calc(var(--gy) - var(--band) - 6px),
+    transparent calc(var(--gy) - var(--band)), transparent calc(var(--gy) + var(--band)),
+    var(--dim) calc(var(--gy) + var(--band) + 6px), var(--dim) 100%);
+}
+.a-guide::after {
+  content: ""; position: absolute; left: 0; right: 0; top: calc(var(--gy) + var(--band) - 1px); height: 2px;
+  background: rgba(var(--blue-rgb), .55);
+}
+
+/* ---------- the Accessibility page in Settings ---------- */
+.a-h { margin: 22px 0 10px; font: 600 13px/1 var(--sans); color: var(--glass-ink); display: flex; align-items: center; gap: 8px; }
+.a-h:first-of-type { margin-top: 4px; }
+.a-fonts { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin-bottom: 14px; }
+.a-fcard {
+  appearance: none; border: 0; background: none; padding: 0; cursor: pointer; text-align: left;
+  display: grid; gap: 8px; font: 500 13px/1.2 var(--sans); color: var(--glass-ink);
+  -webkit-tap-highlight-color: transparent;
+}
+.a-fprev {
+  display: grid; align-content: center; gap: 6px; height: 96px; padding: 0 14px; border-radius: 14px; background: #fff;
+  box-shadow: 0 0 0 1px rgba(20,24,40,.10), 0 4px 12px -6px rgba(20,28,60,.25);
+  transition: box-shadow .25s ease, scale .5s var(--spring);
+  overflow: hidden;
+}
+.a-fprev b { font-size: 30px; line-height: 1; font-weight: 400; color: var(--blue); letter-spacing: 0; }
+.a-fprev small { font-size: 12.5px; line-height: 1.3; color: var(--glass-sub); letter-spacing: 0; }
+.a-fcard:hover .a-fprev { box-shadow: 0 0 0 1px rgba(20,24,40,.18), 0 6px 16px -6px rgba(20,28,60,.3); }
+.a-fcard:active .a-fprev { scale: .97; }
+.a-fcard.on .a-fprev { box-shadow: 0 0 0 2px var(--blue), 0 0 0 6px rgba(var(--blue-rgb), .14); }
+.a-fcard:focus-visible { outline: none; }
+.a-fcard:focus-visible .a-fprev { box-shadow: 0 0 0 2px var(--blue), 0 0 0 6px rgba(var(--blue-rgb), .3); }
+html.dark .a-fprev { background: #1b1e25; box-shadow: 0 0 0 1px rgba(255,255,255,.08); }
+html.dark .a-fprev b { color: #7d9bff; }
+.a-tints { display: flex; flex-wrap: wrap; gap: 7px; }
+.a-tints button {
+  appearance: none; border: 0; cursor: pointer; padding: 0;
+  width: 28px; height: 28px; border-radius: 999px; background: var(--c);
+  box-shadow: inset 0 0 0 1px rgba(20,24,40,.16); transition: box-shadow .2s ease, scale .45s var(--spring);
+}
+.a-tints button:active { scale: .9; }
+.a-tints button.on { box-shadow: inset 0 0 0 1px rgba(20,24,40,.16), 0 0 0 2px var(--paper), 0 0 0 4px var(--blue); }
+.a-tints button[data-tint="none"] { background: linear-gradient(135deg, #fff 45%, #e2464a 45% 55%, #fff 55%); }
+html.dark .a-tints button[data-tint="none"] { background: linear-gradient(135deg, #2a2e37 45%, #e2464a 45% 55%, #2a2e37 55%); }
+.chip[disabled] { opacity: .45; cursor: default; }
+.srow.a-stack { flex-direction: column; align-items: stretch; gap: 10px; padding-block: 12px; }
+.a-note { margin: 16px 2px 0; font: 400 12px/1.5 var(--sans); color: var(--glass-sub); max-width: 60ch; }
+.a-foot { display: flex; justify-content: flex-end; margin-top: 14px; }
+
+/* the reading-font step of setup */
+.fontprev { display: grid; justify-items: center; gap: 10px; max-width: 34ch; text-align: center; color: var(--ink); }
+.fontprev b { font: 400 64px/1 var(--sans); color: var(--blue); }
+.fontprev p { margin: 0; font: 400 17px/1.55 var(--sans); }

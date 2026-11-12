@@ -14,7 +14,6 @@
   const call = (cmd, args) => (isApp ? T.core.invoke(cmd, args) : Promise.reject(new Error("preview")));
   const { $, NS, prefs } = W;
   const save = () => W.savePrefs();
-  const reduce = W.reduce;
   const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
   const sleep = ms => new Promise(r => setTimeout(r, ms));
   const isMac = /Mac|iPhone|iPad/.test(navigator.platform || navigator.userAgent);
@@ -27,6 +26,7 @@
     [0, 90, 180, 270].map(a => `<g transform="rotate(${a} 50 50)"><polygon points="50,52 29,9 64,1 60,47"/></g>`).join("") +
     '<circle cx="50" cy="50" r="10"/></g></svg>';
   const I = {
+    access: '<svg class="ic" viewBox="0 0 24 24"><circle class="fill" cx="12" cy="4.6" r="1.9"/><path d="M4.8 8.4c2.5.9 4.9 1.3 7.2 1.3s4.7-.4 7.2-1.3"/><path class="soft" d="M12 9.8v4.4M12 14.2l-3.1 6.1M12 14.2l3.1 6.1"/></svg>',
     gear: '<svg class="ic" viewBox="0 0 24 24"><circle cx="12" cy="12" r="5.6"/><path d="M12 12l2.6-2.6"/><g class="softfill"><circle cx="12" cy="3.6" r=".95"/><circle cx="12" cy="20.4" r=".95"/><circle cx="3.6" cy="12" r=".95"/><circle cx="20.4" cy="12" r=".95"/></g></svg>',
     lock: '<svg class="ic" viewBox="0 0 24 24"><rect x="5" y="10.5" width="14" height="10" rx="2.6"/><path d="M8.2 10.5V8a3.8 3.8 0 0 1 7.6 0v2.5"/><circle class="softfill" cx="12" cy="15.5" r="1.4"/></svg>',
     restart: '<svg class="ic" viewBox="0 0 24 24"><path d="M19.5 12a7.5 7.5 0 1 1-2.2-5.3"/><path d="M19.6 4.2v4.3h-4.3"/></svg>',
@@ -334,7 +334,7 @@
       const b = el("button", "lapp" + ((prefs.pins || []).includes(a.id) ? " pinned" : ""));
       b.type = "button"; b.dataset.id = a.id;
       b.innerHTML = `<span class="li">${iconHTML(a)}</span><span>${esc(a.name)}</span>`;
-      if (!reduce && i < 40) b.animate([{ opacity: 0, transform: "translateY(10px) scale(.92)" }, { opacity: 1, transform: "none" }], { duration: 420, delay: i * 12, easing: "cubic-bezier(.2,.9,.25,1.1)", fill: "backwards" });
+      if (!W.reduce && i < 40) b.animate([{ opacity: 0, transform: "translateY(10px) scale(.92)" }, { opacity: 1, transform: "none" }], { duration: 420, delay: i * 12, easing: "cubic-bezier(.2,.9,.25,1.1)", fill: "backwards" });
       lgrid.appendChild(b);
     });
     if (!isApp) lgrid.appendChild(el("div", "lnote", "Example apps. In the Windows app, this shows everything installed on your PC. Right-click an app to pin it to the dock."));
@@ -416,7 +416,7 @@
   const panel = el("div", "glass wpanel os-pop");
   panel.setAttribute("role", "dialog"); panel.setAttribute("aria-label", "Windmill"); panel.setAttribute("aria-hidden", "true");
   panel.innerHTML = `
-    <header class="ph">${MARK}<b>Windmill</b><span class="who" id="pWho"></span>${isApp ? "" : '<span class="os-tag">Example data</span>'}<span class="sp"></span>
+    <header class="ph">${MARK}<b class="brandword">Windmill</b><span class="who" id="pWho"></span>${isApp ? "" : '<span class="os-tag">Example data</span>'}<span class="sp"></span>
       <button class="os-icon" type="button" data-a="settings" aria-label="Settings" data-label="Settings">${I.gear}</button>
       <button class="os-icon" type="button" data-a="lock" aria-label="Lock Windmill" data-label="Lock">${I.lock}</button></header>
     <div class="pstats">
@@ -600,7 +600,8 @@
     toasts.prepend(t);
     const kill = () => { t.classList.add("out"); setTimeout(() => t.remove(), 300); };
     t.addEventListener("click", kill);
-    setTimeout(kill, 4800);
+    const stay = prefs.a11y && prefs.a11y.toast != null ? prefs.a11y.toast : 4800;
+    if (stay) setTimeout(kill, stay);
     while (toasts.children.length > 3) toasts.lastElementChild.remove();
   }
   let warnedLow = false, wasCharging = null;
@@ -680,7 +681,7 @@
   document.body.appendChild(fx);
   function spinMark(duration) {
     const m = fx.querySelector("svg");
-    if (reduce) return;
+    if (W.reduce) return;
     m.animate([{ transform: "rotate(0deg)" }, { transform: "rotate(-1080deg)" }], { duration, easing: "cubic-bezier(.15,.6,.25,1)", fill: "forwards" });
   }
   async function shutdownWindmill() {
@@ -754,6 +755,7 @@
       { label: "Add a wallpaper", icon: I.plus, run: () => addWallpaper() },
       { sep: true },
       { label: "Keyboard shortcuts", icon: I.keys, key: `${MOD} /`, run: () => openKeys() },
+      { label: "Accessibility", icon: I.access, key: `${MOD} Shift U`, run: () => window.WindmillA11y && window.WindmillA11y.open() },
       { label: "Lock Windmill", icon: I.lock, key: `${MOD} Shift L`, run: () => lock() },
     ]);
   });
@@ -763,7 +765,7 @@
   keys.setAttribute("role", "dialog"); keys.setAttribute("aria-label", "Keyboard shortcuts");
   const KEYS = [
     ["Windmill panel", isApp ? ["Ctrl", "Win"] : ["Windmill button"]], ["Windmill Search", [MOD, "K"]], ["All apps", [MOD, "Shift", "A"]],
-    ["Control center", [MOD, "Shift", "C"]], ["Lock Windmill", [MOD, "Shift", "L"]], ["These shortcuts", [MOD, "/"]], ["Close what's open", ["Esc"]],
+    ["Control center", [MOD, "Shift", "C"]], ["Lock Windmill", [MOD, "Shift", "L"]], ["Accessibility", [MOD, "Shift", "U"]], ["These shortcuts", [MOD, "/"]], ["Close what's open", ["Esc"]],
   ];
   keys.innerHTML = `<h3>Shortcuts</h3>` + KEYS.map(([k, v]) => `<div class="krow2"><span>${esc(k)}</span><span>${v.map(x => `<kbd class="os-kbd">${esc(x)}</kbd>`).join("")}</span></div>`).join("");
   document.body.appendChild(keys);
@@ -850,7 +852,7 @@
           ctx2.lineWidth = 1.4 * dpr; ctx2.stroke();
         }
       }
-      if (!reduce) liveRaf = requestAnimationFrame(draw);
+      if (!W.reduce) liveRaf = requestAnimationFrame(draw);
     };
     liveRaf = requestAnimationFrame(draw);
   }
@@ -864,7 +866,7 @@
   window.addEventListener("windmill:wall", e => {
     const w = e.detail || "";
     w.startsWith("live-") && w !== "live-aurora" ? runLive(w) : (liveKind = "", cancelAnimationFrame(liveRaf));
-    wall.querySelectorAll("video").forEach(v => { const on = v.closest("i").dataset.w === w; on ? v.play().catch(() => {}) : v.pause(); });
+    wall.querySelectorAll("video").forEach(v => { const on = v.closest("i").dataset.w === w; on && !W.reduce ? v.play().catch(() => {}) : v.pause(); });
     paintWallCards();
   });
   async function loadCustoms() {

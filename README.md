@@ -17,7 +17,7 @@
 
 ![The Windmill home: a sky wallpaper, a glass bar at the top and the dock with your apps at the bottom](docs/assets/hero-home.webp)
 
-> **Early preview.** Windmill 0.1 works, but expect rough edges. Bug reports are welcome in [Issues](https://github.com/ThatMaxwell/Windmill/issues).
+> **Early preview.** Windmill 0.2 works, but expect rough edges. Bug reports are welcome in [Issues](https://github.com/ThatMaxwell/Windmill/issues).
 
 ## What it is
 
@@ -32,6 +32,7 @@ Windmill is **not** a new operating system. It's an app that runs full screen on
 - **Control center.** Your PC's real volume and brightness, Wi-Fi, Bluetooth, Do Not Disturb and dark mode.
 - **A lock screen of its own**, with an optional four-digit PIN and auto-lock when you step away.
 - **Wallpapers.** Dots, Sky, Deep blue, three live wallpapers (Drift, Waves, Aurora), or any photo or video of your own.
+- **Reads your way.** Settings → Accessibility (**Ctrl + Shift + U**) has OpenDyslexic and Atkinson Hyperlegible built in, a bigger size, wider spacing, bold text, a reading guide that follows your pointer, screen tints, more contrast, solid surfaces instead of glass, grayscale, a bigger pointer, a clear focus ring, reduce motion, app names in the dock, and notifications that stay until you close them. Setup starts by asking which letters read best for you.
 - **Make it yours.** Light or dark, the app icon in blue, white or black (Windows and your phone's home screen follow), which buttons show in the top bar, your cursor, adaptive icons.
 - **Your PC from your phone.** Pair the Android app with a six-digit code and use your PC's screen live with touch and your phone's keyboard.
 - **Set up in a minute.** Country, language, time format, light or dark, wallpaper, picked on a 3D wheel.
@@ -53,6 +54,7 @@ Windmill is **not** a new operating system. It's an app that runs full screen on
 | **Ctrl + Shift + A** | All apps |
 | **Ctrl + Shift + C** | Control center |
 | **Ctrl + Shift + L** | Lock Windmill |
+| **Ctrl + Shift + U** | Accessibility |
 | **Ctrl + /** | Show all shortcuts |
 | **Esc** | Close whatever is open |
 
@@ -62,7 +64,7 @@ Get both from the [latest release](https://github.com/ThatMaxwell/Windmill/relea
 
 **Windows 10 or 11 (64-bit):** download `Windmill-Windows-Setup.exe` and run it. It installs just for you, with no admin rights needed. The installer isn't signed yet, so Windows SmartScreen may warn you: choose **More info → Run anyway**. Windmill starts with Windows from then on; you can switch that off in Settings.
 
-**Android 7 or newer:** download `Windmill-Android.apk` on your phone and open it. Android will ask you to allow installing apps from your browser the first time.
+**Android 7 or newer:** download `Windmill-Android.apk` on your phone and open it. Android will ask you to allow installing apps from your browser the first time. Updating from an older preview? Uninstall it first: preview builds aren't signed with one permanent key yet.
 
 **To leave Windmill:** press **Ctrl + Win** and choose **Shut down**. Windmill asks your open apps to close (so they can save), quits, and brings the Windows taskbar back.
 
@@ -156,6 +158,9 @@ docs/
     index.html        The Windmill interface: intro, sign-in, setup, home, dock, windows, settings
     windmill-os.js    The layer that connects the interface to the real PC (or example data on the web)
     windmill-os.css
+    access.js         Settings -> Accessibility, applied before anything is drawn
+    access.css
+    fonts/            OpenDyslexic and Atkinson Hyperlegible Next (SIL Open Font License)
   assets/             Screenshots and icons
 desktop/
   src-tauri/
@@ -185,3 +190,5 @@ Every push to `main` builds the Windows installer and the Android app as downloa
 ## License
 
 A license hasn't been chosen yet.
+
+Windmill ships two fonts under the [SIL Open Font License 1.1](https://openfontlicense.org/): [OpenDyslexic](https://opendyslexic.org/) by Abbie Gonzalez and [Atkinson Hyperlegible Next](https://www.brailleinstitute.org/freefont/) by the Braille Institute. Their licenses are in `docs/app/fonts/`.

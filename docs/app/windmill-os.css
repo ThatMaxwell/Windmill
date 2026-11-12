@@ -405,10 +405,8 @@ html.dark .chip.on { background: #2f62ff; }
   .pstats .pstat:last-child { display: none; }
   .ppower { grid-template-columns: 1fr; }
 }
-@media (prefers-reduced-motion: reduce) {
-  .os-pop, .launcher, .lock, .powerfx, .lgrid, .toast { transition: none !important; animation: none !important; }
-  .wall i[data-w="live-aurora"] b { animation: none; }
-}
+html.a-rm .os-pop, html.a-rm .launcher, html.a-rm .lock, html.a-rm .powerfx, html.a-rm .lgrid, html.a-rm .toast { transition: none !important; animation: none !important; }
+html.a-rm .wall i[data-w="live-aurora"] b { animation: none; }
 
 /* ---------- app icon picker ---------- */
 .appicon { display: grid; place-items: center; width: 100%; height: 100%; border-radius: 26%; box-shadow: inset 0 0 0 1px rgba(20,24,40,.08); }

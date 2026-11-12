@@ -7,7 +7,11 @@
 <script>
 (function () {
   var h = document.documentElement; h.classList.add("js");
-  try { if (!sessionStorage.getItem("wm-intro") && !matchMedia("(prefers-reduced-motion: reduce)").matches) h.classList.add("intro"); } catch (e) {}
+  var r = {}; try { r = JSON.parse(localStorage.getItem("wm-reading") || "{}") || {}; } catch (e) {}
+  if (r.font === "dyslexic") h.classList.add("r-dys"); if (r.font === "atkinson") h.classList.add("r-atk");
+  if (r.space) h.classList.add("r-space"); if (r.still) h.classList.add("r-still");
+  if (r.size > 1) h.style.setProperty("--rz", r.size);
+  try { if (!sessionStorage.getItem("wm-intro") && !r.still && !matchMedia("(prefers-reduced-motion: reduce)").matches) h.classList.add("intro"); } catch (e) {}
   setTimeout(function () { h.classList.add("ready"); h.classList.remove("intro"); }, 7000);
 })();
 </script>
@@ -104,7 +108,7 @@ p { margin: 0; }
 .gh { display: grid; place-items: center; width: 38px; height: 38px; border-radius: 50%; color: var(--sub); }
 .gh:hover { color: var(--ink); background: var(--paper-2); }
 .gh svg { width: 20px; height: 20px; }
-@media (max-width: 860px) { .nav nav { display: none; } .nav .wrap { gap: 12px; } .nav .gh { margin-left: auto; } }
+@media (max-width: 860px) { .nav nav { display: none; } .nav .wrap { gap: 12px; } .nav .ra { margin-left: auto; } }
 
 /* ---------- hero ---------- */
 .hero { padding: clamp(56px, 9vw, 110px) 0 0; text-align: center; overflow: hidden; }
@@ -442,6 +446,88 @@ footer .brand:hover svg { rotate: -270deg; }
   .wind { display: none; }
   .tile, .device.land, .device.tall { transform: none !important; }
 }
+
+/* ---------- reading options (the Aa button) ---------- */
+@font-face { font-family: "OpenDyslexic"; font-weight: 400; font-display: swap; size-adjust: 92%; src: url(app/fonts/opendyslexic-latin-400-normal.woff2) format("woff2"); }
+@font-face { font-family: "OpenDyslexic"; font-weight: 700; font-display: swap; size-adjust: 92%; src: url(app/fonts/opendyslexic-latin-700-normal.woff2) format("woff2"); }
+@font-face { font-family: "Atkinson Hyperlegible Next"; font-weight: 400; font-display: swap; src: url(app/fonts/atkinson-hyperlegible-next-latin-400-normal.woff2) format("woff2"); }
+@font-face { font-family: "Atkinson Hyperlegible Next"; font-weight: 700; font-display: swap; src: url(app/fonts/atkinson-hyperlegible-next-latin-700-normal.woff2) format("woff2"); }
+html.r-dys { --sans: "OpenDyslexic", "Inter", system-ui, sans-serif; --serif: "OpenDyslexic", "Inter", system-ui, sans-serif; }
+html.r-atk { --sans: "Atkinson Hyperlegible Next", "Inter", system-ui, sans-serif; --serif: "Atkinson Hyperlegible Next", "Inter", system-ui, sans-serif; }
+html:is(.r-dys, .r-atk) :is(.brand b, .iword) { font-family: "Piazzolla", "Iowan Old Style", Georgia, serif !important; }
+html:is(.r-dys, .r-atk) .serif { letter-spacing: 0; }
+html.r-space :where(body *:not(svg, svg *, .brand b, .iword, .iword *)) { letter-spacing: .035em !important; word-spacing: .16em !important; }
+html.r-space :is(p, li, dd, .lead) { line-height: 1.8 !important; }
+body { zoom: var(--rz, 1); }
+html.r-still { scroll-behavior: auto; }
+html.r-still :is(.sky b, .wind path, .stage .float img, .iword .l, .w-aurora, .download::before, .bigmill svg) { animation: none !important; }
+html.r-still.js :is(.reveal, .hero .pill, .hero .lead, .hero .cta, .stage, .hero h1 .w) { opacity: 1 !important; translate: 0 0 !important; filter: none !important; transition: none !important; }
+html.r-still .wind { display: none; }
+html.r-still :is(.tile, .device.land, .device.tall, .stage, .btn.mag) { transform: none !important; }
+html.r-still .tap { display: none; }
+.ra { position: relative; }
+.ra-btn {
+  appearance: none; border: 0; cursor: pointer; display: grid; place-items: center;
+  width: 38px; height: 38px; border-radius: 50%; background: none; color: var(--sub);
+  font: 600 15px/1 var(--serif); letter-spacing: 0;
+}
+.ra-btn svg { width: 21px; height: 21px; }
+.ra-btn:hover, .ra-btn[aria-expanded="true"] { color: var(--ink); background: var(--paper-2); }
+.ra-btn:focus-visible, .ra-pop button:focus-visible, .rt-fonts button:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; }
+.ra-pop {
+  position: absolute; right: -60px; top: calc(100% + 12px); width: min(320px, calc(100vw - 32px)); z-index: 80;
+  padding: 18px; border-radius: 22px; background: var(--paper);
+  box-shadow: 0 0 0 1px var(--hair), 0 30px 70px -24px rgba(10, 24, 80, .38), 0 10px 24px -14px rgba(20, 28, 60, .25);
+  display: grid; gap: 16px; transform-origin: 85% 0;
+  opacity: 0; translate: 0 -6px; scale: .97; visibility: hidden;
+  transition: opacity .18s ease, translate .45s cubic-bezier(.2, 1.3, .35, 1), scale .45s cubic-bezier(.2, 1.3, .35, 1), visibility 0s linear .2s;
+}
+.ra-pop.on { opacity: 1; translate: 0 0; scale: 1; visibility: visible; transition: opacity .18s ease, translate .45s cubic-bezier(.2, 1.3, .35, 1), scale .45s cubic-bezier(.2, 1.3, .35, 1), visibility 0s; }
+.ra-pop h4 { margin: 0; font: 600 15px/1.25 var(--sans); }
+.ra-pop p.ra-sub { margin: -10px 0 0; font: 400 13px/1.45 var(--sans); color: var(--sub); }
+.ra-g { display: grid; gap: 8px; }
+.ra-g > b { font: 600 11.5px/1 var(--sans); letter-spacing: .06em; text-transform: uppercase; color: var(--sub); }
+.ra-seg { display: flex; flex-wrap: wrap; gap: 6px; }
+.ra-seg button {
+  appearance: none; border: 0; cursor: pointer; flex: 1 1 auto; min-height: 40px; padding: 6px 10px; border-radius: 12px;
+  background: var(--paper-2); color: var(--ink); font: 500 14px/1.15 var(--sans); letter-spacing: 0;
+  transition: background-color .2s ease, color .2s ease, scale .45s cubic-bezier(.2, 1.3, .35, 1);
+}
+.ra-seg button:active { scale: .95; }
+.ra-seg button[aria-pressed="true"] { background: var(--blue); color: #fff; }
+.ra-sw { display: flex; align-items: center; justify-content: space-between; gap: 12px; font: 500 14.5px/1.3 var(--sans); }
+.ra-sw small { display: block; font-size: 12.5px; color: var(--sub); font-weight: 400; margin-top: 2px; }
+.ra-sw button {
+  appearance: none; border: 0; cursor: pointer; flex: none; position: relative; width: 46px; height: 28px; border-radius: 999px;
+  background: #dcdfe6; transition: background-color .25s ease;
+}
+.ra-sw button i { position: absolute; top: 3px; left: 3px; width: 22px; height: 22px; border-radius: 50%; background: #fff; box-shadow: 0 1px 2px rgba(0,0,0,.14), 0 3px 8px -2px rgba(0,0,0,.25); transition: translate .5s cubic-bezier(.2, 1.3, .35, 1); }
+.ra-sw button[aria-checked="true"] { background: var(--blue); }
+.ra-sw button[aria-checked="true"] i { translate: 18px 0; }
+.ra-foot { font: 400 12px/1.4 var(--sans); color: var(--sub); }
+@media (max-width: 860px) { .ra-pop { right: -48px; } }
+@media (max-width: 560px) { .ra { position: static; } .ra-pop { left: max(16px, var(--gutter)); right: max(16px, var(--gutter-r)); width: auto; top: calc(100% + 6px); transform-origin: 50% 0; } }
+
+/* the "reads your way" tile */
+.tile.w6 { grid-column: span 6; min-height: 0; }
+.tile.read { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.25fr); align-items: center; gap: 10px; background: var(--blue-soft); box-shadow: none; }
+.tile.read .t { padding-bottom: 26px; }
+.tile.read ul { margin: 6px 0 0; padding: 0; list-style: none; display: flex; flex-wrap: wrap; gap: 6px; }
+.tile.read li { font: 500 13px/1 var(--sans); padding: 8px 11px; border-radius: 999px; background: #fff; color: var(--ink); }
+.rt-fonts { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; padding: 26px; }
+.rt-fonts button {
+  appearance: none; border: 0; cursor: pointer; text-align: left; display: grid; gap: 10px; padding: 18px 16px; border-radius: 18px;
+  background: #fff; color: var(--ink); box-shadow: 0 0 0 1px var(--hair), 0 10px 24px -16px rgba(15, 40, 130, .35);
+  transition: box-shadow .25s ease, scale .5s cubic-bezier(.2, 1.3, .35, 1), translate .5s cubic-bezier(.2, 1.3, .35, 1);
+}
+.rt-fonts button:hover { translate: 0 -3px; }
+.rt-fonts button:active { scale: .97; }
+.rt-fonts button[aria-pressed="true"] { box-shadow: 0 0 0 2px var(--blue), 0 0 0 7px rgba(var(--blue-rgb), .14); }
+.rt-fonts .aa { font-size: 44px; line-height: 1; color: var(--blue); letter-spacing: 0 !important; }
+.rt-fonts .nm { font-size: 14px; font-weight: 600; line-height: 1.25; }
+.rt-fonts .ex { font-size: 13px; line-height: 1.45; color: var(--sub); }
+@media (max-width: 960px) { .tile.w6 { grid-column: span 2; } .tile.read { grid-template-columns: 1fr; } .tile.read .t { padding-bottom: 0; } }
+@media (max-width: 620px) { .rt-fonts { grid-template-columns: 1fr; padding: 20px; } .rt-fonts button { grid-template-columns: auto 1fr; align-items: center; column-gap: 14px; } .rt-fonts .aa { grid-row: span 2; font-size: 36px; } }
 </style>
 </head>
 <body>
@@ -463,6 +549,23 @@ footer .brand:hover svg { rotate: -270deg; }
       <a href="#yours">Make it yours</a>
       <a href="#faq">Questions</a>
     </nav>
+    <div class="ra">
+      <button class="ra-btn" type="button" id="raBtn" aria-expanded="false" aria-controls="raPop" aria-label="Reading options"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 18 8 5.5 13 18M4.8 13.6h6.4"/><path d="M15.2 11.4c.6-1.1 1.6-1.7 2.9-1.7 1.8 0 2.9 1.1 2.9 3V18M21 14.4c-3.6-.2-5.9.5-5.9 2 0 1 .8 1.7 2 1.7 2.3 0 3.9-1.7 3.9-3.7"/></svg></button>
+      <div class="ra-pop" id="raPop" role="dialog" aria-label="Reading options">
+        <h4>Read this page your way</h4>
+        <p class="ra-sub">Saved in this browser. The Windmill app has even more in Settings &rarr; Accessibility.</p>
+        <div class="ra-g"><b>Font</b><div class="ra-seg" data-r="font">
+          <button type="button" data-v="default" style="font-family:Inter, system-ui, sans-serif">Standard</button>
+          <button type="button" data-v="dyslexic" style="font-family:OpenDyslexic, sans-serif">OpenDyslexic</button>
+          <button type="button" data-v="atkinson" style="font-family:'Atkinson Hyperlegible Next', sans-serif">Atkinson</button>
+        </div></div>
+        <div class="ra-g"><b>Text size</b><div class="ra-seg" data-r="size">
+          <button type="button" data-v="1">100%</button><button type="button" data-v="1.15">115%</button><button type="button" data-v="1.3">130%</button>
+        </div></div>
+        <div class="ra-sw"><span>Wider spacing<small>More room between letters, words and lines.</small></span><button type="button" role="switch" aria-checked="false" aria-label="Wider spacing" data-r="space"><i></i></button></div>
+        <div class="ra-sw"><span>Reduce motion<small>Everything stays still.</small></span><button type="button" role="switch" aria-checked="false" aria-label="Reduce motion" data-r="still"><i></i></button></div>
+      </div>
+    </div>
     <a class="gh" href="https://github.com/ThatMaxwell/Windmill" aria-label="Windmill on GitHub"><svg viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0 0 16 8c0-4.42-3.58-8-8-8z"/></svg></a>
     <a class="btn primary" href="#download">Download</a>
   </div>
@@ -481,7 +584,7 @@ footer .brand:hover svg { rotate: -270deg; }
       <path d="M-100 460 C 240 420, 600 520, 940 450 S 1340 400, 1560 470"/>
     </svg>
     <div class="wrap">
-      <a class="pill" href="#download"><b>Preview</b>Windmill 0.1 for Windows and Android</a>
+      <a class="pill" href="#download"><b>New</b>Windmill 0.2: reads your way</a>
       <h1 class="serif" aria-label="Every app you own, in one calm space."><span class="w" style="--i:0">Every</span> <span class="w" style="--i:1">app</span> <span class="w" style="--i:2">you</span> <span class="w" style="--i:3">own,</span> <span class="w" style="--i:4">in</span> <span class="w" style="--i:5">one</span> <span class="w calm" style="--i:6">calm</span> <span class="w" style="--i:7">space.</span></h1>
       <p class="lead">Windmill turns your Windows PC into a calm, full-screen home for the apps you already have. Your phone becomes its remote.</p>
       <div class="cta">
@@ -599,6 +702,16 @@ footer .brand:hover svg { rotate: -270deg; }
       <p class="eyebrow">Make it yours</p>
       <h2 class="serif reveal" style="margin-top:18px">Calm, your way.</h2>
       <div class="bento">
+        <article class="tile w6 read" id="reading">
+          <div class="t"><h3>Reads your way</h3><p>Windmill comes with OpenDyslexic and Atkinson Hyperlegible. Pick one in setup or in Settings &rarr; Accessibility and every word in Windmill changes. Tap one here to read this page in it.</p>
+            <ul aria-label="Also in Accessibility"><li>Bigger everything</li><li>Wider spacing</li><li>Bold text</li><li>Reading guide</li><li>Screen tints</li><li>More contrast</li><li>Solid surfaces</li><li>Reduce motion</li><li>App names in the dock</li></ul>
+          </div>
+          <div class="rt-fonts" data-r="font" role="group" aria-label="Read this page in">
+            <button type="button" data-v="default" style="font-family:Inter, system-ui, sans-serif"><span class="aa">Aa</span><span class="nm">Standard</span><span class="ex">Inter, Windmill's usual letters.</span></button>
+            <button type="button" data-v="dyslexic" style="font-family:OpenDyslexic, sans-serif"><span class="aa">Aa</span><span class="nm">OpenDyslexic</span><span class="ex">Weighted letters that stay put.</span></button>
+            <button type="button" data-v="atkinson" style="font-family:'Atkinson Hyperlegible Next', sans-serif"><span class="aa">Aa</span><span class="nm">Atkinson Hyperlegible</span><span class="ex">Letters that are hard to mix up.</span></button>
+          </div>
+        </article>
         <article class="tile w4 dark">
           <div class="t"><h3>Live wallpapers</h3><p>Drift, Waves and Aurora move slowly behind everything. Or use any photo or video of your own.</p></div>
           <div class="walls-strip" aria-hidden="true"><i class="w-dots"></i><i class="w-sky"></i><i class="w-deep"></i><i class="w-aurora"></i></div>
@@ -624,7 +737,7 @@ footer .brand:hover svg { rotate: -270deg; }
           <div class="img"><img src="assets/all-apps.webp" width="1600" height="344" alt="All apps in Windmill: a grid of app icons under a search field." loading="lazy"></div>
         </article>
         <article class="tile w4">
-          <div class="t"><h3>Settings that stay out of the way</h3><p>Choose the buttons in the top bar, your cursor, your icon, when to lock, whether Windmill starts with Windows, and whether it hides the Windows taskbar.</p></div>
+          <div class="t"><h3>Settings that stay out of the way</h3><p>Choose the buttons in the top bar, your cursor, your icon, when to lock, whether Windmill starts with Windows, whether it hides the Windows taskbar, and how it reads, looks and moves for you.</p></div>
           <div class="img"><img src="assets/settings.webp" width="1920" height="1200" alt="Windmill Settings showing app icon colors, start with Windows, hide the taskbar and lock options." loading="lazy"></div>
         </article>
       </div>
@@ -706,7 +819,8 @@ footer .brand:hover svg { rotate: -270deg; }
 <script>
 (() => {
   const html = document.documentElement;
-  const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const still = () => document.documentElement.classList.contains("r-still");
+  const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches || still();
   const $ = s => document.querySelector(s), $$ = s => [...document.querySelectorAll(s)];
   const sleep = ms => new Promise(r => setTimeout(r, ms));
   const nav = $("#nav"), stage = $("#stage");
@@ -784,7 +898,7 @@ footer .brand:hover svg { rotate: -270deg; }
     const y = scrollY;
     nav.classList.toggle("scrolled", y > 8);
     nav.style.setProperty("--p", (y / Math.max(1, document.documentElement.scrollHeight - innerHeight)).toFixed(4));
-    if (reduce) return;
+    if (reduce || still()) return;
     vel += (y - lastY) * -0.06; lastY = y;
     if (!spinning) { spinning = true; requestAnimationFrame(spinLoop); }
     if (stage) {
@@ -904,6 +1018,40 @@ footer .brand:hover svg { rotate: -270deg; }
     });
     b.addEventListener("pointerleave", () => { b.style.setProperty("--bx", "0px"); b.style.setProperty("--by", "0px"); });
   });
+})();
+</script>
+<script>
+(() => {
+  const html = document.documentElement, KEY = "wm-reading";
+  let r = {}; try { r = JSON.parse(localStorage.getItem(KEY) || "{}") || {}; } catch (e) {}
+  const btn = document.getElementById("raBtn"), pop = document.getElementById("raPop");
+  function apply() {
+    html.classList.toggle("r-dys", r.font === "dyslexic"); html.classList.toggle("r-atk", r.font === "atkinson");
+    html.classList.toggle("r-space", !!r.space); html.classList.toggle("r-still", !!r.still);
+    r.size > 1 ? html.style.setProperty("--rz", r.size) : html.style.removeProperty("--rz");
+    document.querySelectorAll('[data-r="font"] button').forEach(b => b.setAttribute("aria-pressed", String(b.dataset.v === (r.font || "default"))));
+    document.querySelectorAll('[data-r="size"] button').forEach(b => b.setAttribute("aria-pressed", String(+b.dataset.v === (+r.size || 1))));
+    document.querySelectorAll('.ra-sw [data-r]').forEach(b => b.setAttribute("aria-checked", String(!!r[b.dataset.r])));
+    try { localStorage.setItem(KEY, JSON.stringify(r)); } catch (e) {}
+  }
+  document.addEventListener("click", e => {
+    const b = e.target.closest("[data-r] button, .ra-sw [data-r]");
+    if (b) {
+      const g = b.closest("[data-r]") === b ? b : b.closest("[data-r]");
+      const key = g.dataset.r;
+      if (key === "font") r.font = b.dataset.v; else if (key === "size") r.size = +b.dataset.v; else r[key] = !r[key];
+      if (key === "still" && r.still) document.querySelectorAll(".reveal, .rise").forEach(el => el.classList.add("in"));
+      return apply();
+    }
+    if (e.target.closest("#raBtn")) return toggle(!pop.classList.contains("on"));
+    if (pop.classList.contains("on") && !e.target.closest("#raPop")) toggle(false);
+  });
+  addEventListener("keydown", e => { if (e.key === "Escape" && pop.classList.contains("on")) { toggle(false); btn.focus(); } });
+  function toggle(on) {
+    pop.classList.toggle("on", on); btn.setAttribute("aria-expanded", String(on));
+    if (on) setTimeout(() => (pop.querySelector('[aria-pressed="true"]') || pop.querySelector("button")).focus(), 30);
+  }
+  apply();
 })();
 </script>
 </body>
