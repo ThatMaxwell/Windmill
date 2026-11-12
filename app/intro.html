@@ -1,0 +1,453 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Windmill</title>
+<!-- For the shipped app, bundle these fonts and three.js locally instead of loading them from the web. -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Piazzolla:opsz,wght@8..30,400&family=Inter:wght@500;600&display=block">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<style>
+:root {
+  --paper: #ffffff;
+  --ink: #141413;
+  --blue: #0141FD;
+  --blue-rgb: 1, 65, 253;
+  --serif: "Piazzolla", "Iowan Old Style", Georgia, serif;
+  --sans: "Inter", "Segoe UI Variable", "Segoe UI", system-ui, sans-serif;
+  color-scheme: light;
+}
+* { box-sizing: border-box; }
+html, body { height: 100%; margin: 0; }
+body {
+  background: var(--paper);
+  color: var(--ink);
+  overflow: hidden;
+  -webkit-font-smoothing: antialiased;
+  user-select: none;
+}
+
+/* ---------- centre column ---------- */
+.center {
+  position: absolute; inset: 0;
+  display: grid; place-items: center; align-content: center;
+  gap: 4px;
+  padding: 0 max(16px, env(safe-area-inset-right, 0px)) 0 max(16px, env(safe-area-inset-left, 0px));
+}
+svg.word { width: min(860px, 92vw); height: auto; overflow: visible; display: block; }
+.word text {
+  font-family: var(--serif);
+  font-size: 200px;
+  font-variation-settings: "opsz" 30;
+  fill: var(--blue);
+}
+.core, .sail, .tittle { fill: var(--blue); }
+.dot, .mill { transform-box: fill-box; transform-origin: center; }
+.dot { transform: scale(0); }
+.dot.on { transform: scale(1); }
+.mill { transform: scale(0); }
+.mill.pop { animation: millpop .15s steps(3, jump-none) forwards; }
+.mill .sail { transform-box: view-box; transform-origin: 50px 50px; }
+.mill.crush { translate: 0px 0px !important; transition: translate .18s steps(3, jump-none); }
+.mill.crush .sail { animation: crush .18s steps(3, jump-none) forwards; }
+.spin { transform-box: view-box; animation: tick .3s steps(3, jump-end) 3; }
+@keyframes millpop { 0% { transform: scale(0) rotate(-40deg) } 60% { transform: scale(1.2) rotate(8deg) } 100% { transform: scale(1) rotate(0) } }
+@keyframes crush   { from { transform: scale(1) } to { transform: scale(0) } }
+@keyframes tick    { from { transform: rotate(0deg) } to { transform: rotate(-90deg) } }
+
+/* ---------- Sign in with GitHub ---------- */
+.cta-slot { height: 60px; display: grid; place-items: center; }
+.pill {
+  --mx: 50%; --my: 50%;
+  --tx: 0px; --ty: 0px; --sx: 1; --sy: 1;
+  position: relative;
+  isolation: isolate;
+  appearance: none; border: 0; cursor: pointer;
+  height: 54px;
+  padding: 0 28px 0 22px;
+  border-radius: 999px;
+  display: inline-flex; align-items: center; gap: 12px;
+  font: 600 15.5px/1 var(--sans);
+  letter-spacing: -0.005em;
+  color: #fff;
+  background: rgb(var(--blue-rgb));
+  box-shadow:
+    0 1px 2px rgba(var(--blue-rgb), .25),
+    0 8px 22px -10px rgba(var(--blue-rgb), .55);
+  transform: translate(var(--tx), var(--ty)) scale(var(--sx), var(--sy));
+  transition:
+    background .28s ease,
+    box-shadow .28s ease,
+    transform .5s cubic-bezier(.2, 1.6, .3, 1);
+  visibility: hidden;
+  clip-path: inset(0 100% 0 0 round 999px);
+}
+.pill.in {
+  visibility: visible;
+  animation: wipe .2s steps(3, jump-start) forwards;
+}
+@keyframes wipe {
+  from { clip-path: inset(0 100% 0 0 round 999px); }
+  to   { clip-path: inset(0 0 0 0 round 999px); }
+}
+.pill.done { clip-path: none; }
+.pill svg { width: 20px; height: 20px; flex: none; position: relative; z-index: 2; }
+.pill .label { position: relative; z-index: 2; text-shadow: 0 1px 0 rgba(0, 20, 90, .18); }
+
+/* glass layers, invisible until hover */
+.pill .glass, .pill .gloss, .pill .light, .pill .rim {
+  position: absolute; inset: 0; border-radius: inherit; pointer-events: none;
+  opacity: 0; transition: opacity .28s ease;
+}
+.pill .glass {
+  z-index: 0;
+  background:
+    linear-gradient(180deg, rgba(var(--blue-rgb), .42), rgba(var(--blue-rgb), .78)),
+    rgba(var(--blue-rgb), .35);
+  -webkit-backdrop-filter: blur(16px) saturate(190%);
+  backdrop-filter: blur(16px) saturate(190%);
+}
+.pill .gloss {
+  z-index: 1;
+  inset: 2px 10px auto 10px; height: 52%;
+  border-radius: 999px 999px 60% 60% / 999px 999px 100% 100%;
+  background: linear-gradient(180deg, rgba(255,255,255,.62), rgba(255,255,255,.08) 70%, rgba(255,255,255,0));
+  mix-blend-mode: screen;
+}
+.pill .light {
+  z-index: 1;
+  background: radial-gradient(120px 70px at var(--mx) var(--my), rgba(255,255,255,.55), rgba(255,255,255,0) 70%);
+  mix-blend-mode: soft-light;
+}
+.pill .rim {
+  z-index: 3;
+  box-shadow:
+    inset 0 1.5px 0 rgba(255,255,255,.75),
+    inset 0 -1px 0 rgba(255,255,255,.28),
+    inset 0 0 0 1px rgba(255,255,255,.28),
+    inset 0 -10px 18px -10px rgba(170, 200, 255, .55);
+}
+.pill:hover {
+  background: rgba(var(--blue-rgb), .5);
+  box-shadow:
+    0 1px 1px rgba(var(--blue-rgb), .2),
+    0 18px 40px -14px rgba(var(--blue-rgb), .7),
+    0 0 0 6px rgba(var(--blue-rgb), .07);
+}
+.pill:hover .glass, .pill:hover .gloss, .pill:hover .light, .pill:hover .rim { opacity: 1; }
+.pill:active { --sx: .96; --sy: .94; transition-duration: .28s, .28s, .12s; }
+.pill:focus-visible { outline: 2px solid var(--blue); outline-offset: 5px; }
+
+/* ---------- hologram ---------- */
+.holo {
+  position: fixed;
+  left: max(20px, env(safe-area-inset-left, 0px));
+  bottom: max(18px, env(safe-area-inset-bottom, 0px));
+  width: 168px; height: 168px;
+  visibility: hidden;
+  pointer-events: none;
+}
+.holo canvas { width: 100%; height: 100%; display: block; }
+.holo::after {
+  content: ""; position: absolute; inset: 0;
+  background: repeating-linear-gradient(180deg, rgba(255,255,255,0) 0 2px, rgba(255,255,255,.55) 2px 3px);
+  pointer-events: none;
+}
+.holo.in { visibility: visible; animation: flickon .32s steps(4, jump-none) both; }
+.holo.blink { animation: blink .12s steps(2, jump-none) both; }
+@keyframes flickon { 0% { opacity: 0 } 25% { opacity: .7 } 50% { opacity: .15 } 75% { opacity: .9 } 100% { opacity: 1 } }
+@keyframes blink   { 0% { opacity: 1 } 50% { opacity: .35 } 100% { opacity: 1 } }
+
+@media (prefers-reduced-motion: reduce) {
+  .mill.pop, .mill.crush .sail, .spin, .pill.in, .holo.in, .holo.blink { animation: none; }
+  .pill.in { clip-path: none; }
+  .pill { transition: none; }
+}
+</style>
+</head>
+<body>
+
+<main class="center">
+  <svg class="word" id="word" viewBox="0 0 1000 300" role="img" aria-label="Windmill">
+    <defs><clipPath id="reveal"></clipPath></defs>
+    <text id="text" x="500" y="200" text-anchor="middle" clip-path="url(#reveal)">W&#305;ndm&#305;ll</text>
+    <g id="dots"></g>
+  </svg>
+
+  <div class="cta-slot">
+    <button class="pill" id="signin" type="button">
+      <span class="glass"></span><span class="light"></span><span class="gloss"></span>
+      <svg viewBox="0 0 16 16" aria-hidden="true"><path fill="currentColor" d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0 0 16 8c0-4.42-3.58-8-8-8z"/></svg>
+      <span class="label">Sign in with GitHub</span>
+      <span class="rim"></span>
+    </button>
+  </div>
+</main>
+
+<div class="holo" id="holo" aria-hidden="true"><canvas id="holoCanvas"></canvas></div>
+
+<script>
+(() => {
+  const NS = "http://www.w3.org/2000/svg";
+  const $ = id => document.getElementById(id);
+  const text = $("text"), clip = $("reveal"), dotsG = $("dots"),
+        pill = $("signin"), holo = $("holo");
+  const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const FONT_PX = 200;
+  const BLADE = "50,52 29,9 64,1 60,47";   // one sail of the Windmill mark, in a 100x100 box
+
+  // How each letter is revealed: direction and chunk boundaries.
+  const PLAN = [
+    ["lr", [.22, .46, .7, 1]], ["bt", [.55, 1]], ["lr", [.38, .7, 1]], ["lr", [.45, .72, 1]],
+    ["lr", [.3, .52, .76, 1]], ["bt", [.55, 1]], ["tb", [.5, 1]], ["tb", [.5, 1]],
+  ];
+  const LETTER_GAP = 95, CHUNK = 60, DOTLESS = [1, 5];
+
+  let rects = [], boxes = [], dots = [], timers = [], tittle = null;
+  const later = (fn, ms) => timers.push(setTimeout(fn, ms));
+
+  // Piazzolla's real i dot, found by diffing "i" against the dotless "ı".
+  function measureTittle() {
+    const S = 400, c = document.createElement("canvas"); c.width = c.height = S;
+    const x = c.getContext("2d", { willReadFrequently: true });
+    const draw = ch => {
+      x.clearRect(0, 0, S, S);
+      x.font = `400 ${FONT_PX}px Piazzolla`; x.fillStyle = "#000";
+      x.fillText(ch, 100, 300);
+      return x.getImageData(0, 0, S, S).data;
+    };
+    const a = draw("i"), b = draw("ı");
+    let n = 0, sx = 0, sy = 0, sxx = 0, syy = 0, sxy = 0, minX = S, maxX = 0, minY = S, maxY = 0;
+    for (let y = 0; y < S; y++) for (let X = 0; X < S; X++) {
+      const k = (y * S + X) * 4 + 3;
+      if (a[k] > 128 && b[k] < 40) {
+        n++; sx += X; sy += y; sxx += X * X; syy += y * y; sxy += X * y;
+        minX = Math.min(minX, X); maxX = Math.max(maxX, X); minY = Math.min(minY, y); maxY = Math.max(maxY, y);
+      }
+    }
+    if (n < 20) return null;
+    const cx = sx / n, cy = sy / n;
+    const vxx = sxx / n - cx * cx, vyy = syy / n - cy * cy, vxy = sxy / n - cx * cy;
+    const h = Math.sqrt(((vxx - vyy) / 2) ** 2 + vxy * vxy);
+    return {
+      dx: cx - 100, dy: cy - 300,
+      rx: Math.sqrt((vxx + vyy) / 2 + h) * 2, ry: Math.sqrt(Math.max((vxx + vyy) / 2 - h, 1)) * 2,
+      deg: 0.5 * Math.atan2(2 * vxy, vxx - vyy) * 180 / Math.PI,
+      size: Math.max(maxX - minX, maxY - minY),
+    };
+  }
+
+  function build() {
+    clip.innerHTML = ""; dotsG.innerHTML = ""; rects = []; boxes = []; dots = [];
+    for (let i = 0; i < text.getNumberOfChars(); i++) {
+      const e = text.getExtentOfChar(i);
+      const b = { x: e.x - 4, y: e.y - 6, w: e.width + 8, h: e.height + 12 };
+      boxes.push(b);
+      const r = document.createElementNS(NS, "rect");
+      r.setAttribute("x", b.x); r.setAttribute("y", b.y); r.setAttribute("width", 0); r.setAttribute("height", 0);
+      clip.appendChild(r); rects.push(r);
+    }
+    if (!tittle) return;
+    DOTLESS.forEach((ci, n) => {
+      const p = text.getStartPositionOfChar(ci);
+      const g = document.createElementNS(NS, "g");
+      g.setAttribute("transform", `translate(${(p.x + tittle.dx).toFixed(2)} ${(p.y + tittle.dy).toFixed(2)})`);
+      const dw = document.createElementNS(NS, "g");
+      dw.setAttribute("transform", `rotate(${tittle.deg.toFixed(1)})`);
+      const dot = document.createElementNS(NS, "ellipse");
+      dot.setAttribute("class", "tittle dot");
+      dot.setAttribute("rx", tittle.rx.toFixed(2)); dot.setAttribute("ry", tittle.ry.toFixed(2));
+      dw.appendChild(dot); g.appendChild(dw);
+      let mill = null, spinner = null;
+      if (n === 0) {
+        const s = (tittle.size * 3.0) / 100;
+        mill = document.createElementNS(NS, "g"); mill.setAttribute("class", "mill");
+        mill.style.translate = `0px ${(-tittle.size * 0.6).toFixed(2)}px`;
+        const scaler = document.createElementNS(NS, "g");
+        scaler.setAttribute("transform", `scale(${s.toFixed(3)}) translate(-50 -50)`);
+        spinner = document.createElementNS(NS, "g");
+        spinner.innerHTML =
+          [0, 90, 180, 270].map(a => `<g transform="rotate(${a} 50 50)"><polygon class="sail" points="${BLADE}"/></g>`).join("") +
+          `<circle class="core" cx="50" cy="50" r="${(Math.max(tittle.rx, tittle.ry) / s).toFixed(2)}"/>`;
+        spinner.style.transformOrigin = "50px 50px";
+        scaler.appendChild(spinner); mill.appendChild(scaler); g.appendChild(mill);
+      }
+      dotsG.appendChild(g);
+      dots.push({ dot, mill, spinner });
+    });
+  }
+
+  function setChunk(i, f) {
+    const dir = (PLAN[i] || ["lr"])[0], b = boxes[i], r = rects[i];
+    if (dir === "lr") { r.setAttribute("x", b.x); r.setAttribute("y", b.y); r.setAttribute("width", b.w * f); r.setAttribute("height", b.h); }
+    if (dir === "bt") { r.setAttribute("x", b.x); r.setAttribute("y", b.y + b.h * (1 - f)); r.setAttribute("width", b.w); r.setAttribute("height", b.h * f); }
+    if (dir === "tb") { r.setAttribute("x", b.x); r.setAttribute("y", b.y); r.setAttribute("width", b.w); r.setAttribute("height", b.h * f); }
+  }
+
+  // ---------- the intro ----------
+  function play() {
+    timers.forEach(clearTimeout); timers = [];
+    pill.classList.remove("in", "done");
+    holo.classList.remove("in");
+    build();
+
+    later(() => {
+      if (reduce) {
+        boxes.forEach((_, i) => setChunk(i, 1));
+        dots.forEach(d => d.dot.classList.add("on"));
+        return outro(200);
+      }
+      let end = 0;
+      PLAN.forEach(([, steps], i) => steps.forEach((f, k) => {
+        const at = i * LETTER_GAP + k * CHUNK;
+        end = Math.max(end, at);
+        later(() => setChunk(i, f), at);
+      }));
+
+      const tDots = end + 160;
+      dots.forEach((d, n) => later(() => d.dot.classList.add("on"), tDots + n * 70));
+
+      const first = dots[0];
+      if (!first || !first.mill) return outro(tDots + 400);
+      const tMill = tDots + 650;
+      later(() => { first.dot.classList.remove("on"); first.mill.classList.add("pop"); }, tMill);
+      later(() => { first.spinner.classList.add("spin"); }, tMill + 260);
+      const tBack = tMill + 260 + 3 * 300 + 120;
+      later(() => { first.spinner.classList.remove("spin"); first.mill.classList.add("crush"); }, tBack);
+      later(() => { first.mill.classList.remove("pop", "crush"); first.dot.classList.add("on"); }, tBack + 180);
+      outro(tBack + 180);
+    }, 1000);
+  }
+
+  function outro(at) {
+    later(() => {
+      pill.classList.add("in");
+      later(() => pill.classList.add("done"), 220);
+    }, at + 280);
+    later(() => { holo.classList.add("in"); startHologram(); }, at + 620);
+  }
+
+  // ---------- liquid glass: the pill leans toward the pointer ----------
+  pill.addEventListener("pointermove", e => {
+    const r = pill.getBoundingClientRect();
+    const px = (e.clientX - r.left) / r.width, py = (e.clientY - r.top) / r.height;
+    pill.style.setProperty("--mx", `${(px * 100).toFixed(1)}%`);
+    pill.style.setProperty("--my", `${(py * 100).toFixed(1)}%`);
+    pill.style.setProperty("--tx", `${((px - .5) * 6).toFixed(2)}px`);
+    pill.style.setProperty("--ty", `${((py - .5) * 4).toFixed(2)}px`);
+    pill.style.setProperty("--sx", (1.03 + Math.abs(px - .5) * .03).toFixed(3));
+    pill.style.setProperty("--sy", (1.03 - Math.abs(px - .5) * .02).toFixed(3));
+  });
+  pill.addEventListener("pointerleave", () => {
+    ["--mx", "--my", "--tx", "--ty", "--sx", "--sy"].forEach(p => pill.style.removeProperty(p));
+  });
+  // Hook for the app shell: listen for this event to start the GitHub sign-in flow.
+  pill.addEventListener("click", () => window.dispatchEvent(new CustomEvent("windmill:signin")));
+
+  // ---------- hologram (three.js) ----------
+  let holoStarted = false;
+  function startHologram() {
+    if (holoStarted || !window.THREE) return;
+    holoStarted = true;
+    const T = THREE, BLUE = new T.Color(0x0141FD);
+    const canvas = $("holoCanvas");
+    const renderer = new T.WebGLRenderer({ canvas, alpha: true, antialias: true });
+    renderer.setPixelRatio(Math.min(devicePixelRatio || 1, 2));
+    renderer.setSize(168, 168, false);
+    const scene = new T.Scene();
+    const camera = new T.PerspectiveCamera(30, 1, 0.1, 50);
+    camera.position.set(0, 1.9, 5.6);
+    camera.lookAt(0, 0.62, 0);
+
+    const line = (opacity) => new T.LineBasicMaterial({ color: BLUE, transparent: true, opacity, depthWrite: false });
+
+    // the field: a polar grid, a ring of points and an outer ring
+    const grid = new T.PolarGridHelper(1.55, 16, 4, 64, BLUE, BLUE);
+    grid.material.transparent = true; grid.material.opacity = 0.32; grid.material.depthWrite = false;
+    scene.add(grid);
+    const ringPts = [];
+    for (let i = 0; i < 64; i++) { const a = i / 64 * Math.PI * 2; ringPts.push(new T.Vector3(Math.cos(a) * 1.72, 0, Math.sin(a) * 1.72)); }
+    const ring = new T.Points(new T.BufferGeometry().setFromPoints(ringPts),
+      new T.PointsMaterial({ color: BLUE, size: 0.045, transparent: true, opacity: 0.8, depthWrite: false }));
+    scene.add(ring);
+
+    // the projection beam
+    const beam = new T.Mesh(
+      new T.CylinderGeometry(0.62, 1.25, 1.5, 48, 1, true),
+      new T.ShaderMaterial({
+        transparent: true, depthWrite: false, side: T.DoubleSide,
+        uniforms: { c: { value: BLUE } },
+        vertexShader: "varying float v; void main(){ v = uv.y; gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.0); }",
+        fragmentShader: "uniform vec3 c; varying float v; void main(){ gl_FragColor = vec4(c, (1.0 - v) * 0.16); }",
+      }));
+    beam.position.y = 0.75;
+    scene.add(beam);
+
+    // the windmill: the same mark as the i dot, extruded
+    const mill = new T.Group();
+    const sails = new T.Group();
+    const fill = new T.MeshBasicMaterial({ color: BLUE, transparent: true, opacity: 0.22, depthWrite: false, side: T.DoubleSide });
+    const pts = BLADE.split(" ").map(p => p.split(",").map(Number)).map(([x, y]) => new T.Vector2((x - 50) / 50, -(y - 50) / 50));
+    const bladeGeo = new T.ExtrudeGeometry(new T.Shape(pts), { depth: 0.14, bevelEnabled: false });
+    bladeGeo.translate(0, 0, -0.07);
+    [0, 1, 2, 3].forEach(k => {
+      const b = new T.Group();
+      b.add(new T.Mesh(bladeGeo, fill));
+      b.add(new T.LineSegments(new T.EdgesGeometry(bladeGeo), line(0.95)));
+      b.rotation.z = -k * Math.PI / 2;
+      sails.add(b);
+    });
+    const coreGeo = new T.CylinderGeometry(0.17, 0.17, 0.18, 24);
+    coreGeo.rotateX(Math.PI / 2);
+    const core = new T.Group();
+    core.add(new T.Mesh(coreGeo, new T.MeshBasicMaterial({ color: BLUE, transparent: true, opacity: 0.55, depthWrite: false })));
+    core.add(new T.LineSegments(new T.EdgesGeometry(coreGeo, 40), line(0.95)));
+    mill.add(sails, core);
+    mill.scale.setScalar(0.52);
+    mill.position.y = 1.0;
+    mill.rotation.y = -0.38;
+    scene.add(mill);
+    // the stalk from the field to the hub
+    scene.add(new T.Line(new T.BufferGeometry().setFromPoints([new T.Vector3(0, 0, 0), new T.Vector3(0, 1.0, 0)]), line(0.5)));
+
+    const render = () => renderer.render(scene, camera);
+    render();
+    if (reduce) return;
+
+    // three frames per quarter turn: snappy steps, calm pace
+    setInterval(() => {
+      sails.rotation.z += Math.PI / 6;
+      grid.rotation.y += Math.PI / 96;
+      render();
+    }, 460);
+
+    // the odd flicker
+    const flicker = () => {
+      holo.classList.remove("in", "blink"); void holo.offsetWidth;
+      holo.classList.add("blink");
+      setTimeout(flicker, 3500 + Math.random() * 4500);
+    };
+    setTimeout(flicker, 4000);
+  }
+
+  // ---------- go ----------
+  Promise.race([
+    Promise.all([
+      document.fonts.load(`400 ${FONT_PX}px "Piazzolla"`, "Windmillı"),
+      document.fonts.load('600 16px "Inter"', "Sign in with GitHub"),
+    ]),
+    new Promise(r => setTimeout(r, 4000)),
+  ]).then(() => {
+    tittle = measureTittle();
+    if (!tittle) text.textContent = "Windmill";
+    play();
+  });
+
+  // Press R to replay while working on the intro.
+  addEventListener("keydown", e => { if (e.key === "r" || e.key === "R") { holo.classList.remove("in", "blink"); play(); } });
+})();
+</script>
+</body>
+</html>
