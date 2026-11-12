@@ -26,13 +26,18 @@
       "csp": null,
       "assetProtocol": {
         "enable": true,
-        "scope": ["$APPDATA/wallpapers/**"]
+        "scope": [
+          "$APPDATA/wallpapers/**"
+        ]
       }
     }
   },
   "bundle": {
     "active": true,
-    "targets": ["nsis", "msi"],
+    "targets": [
+      "nsis",
+      "msi"
+    ],
     "publisher": "Windmill",
     "shortDescription": "Your computer's apps, in one calm space.",
     "longDescription": "Windmill is a calm, full-screen space for the apps already on your computer: a dock, a search, a panel on Ctrl+Win, wallpapers and more.",
@@ -45,7 +50,15 @@
     ],
     "windows": {
       "nsis": {
-        "installMode": "currentUser"
+        "installMode": "currentUser",
+        "installerIcon": "icons/icon.ico",
+        "headerImage": "icons/installer/nsis-header.bmp",
+        "sidebarImage": "icons/installer/nsis-sidebar.bmp",
+        "uninstallerIcon": "icons/icon.ico"
+      },
+      "wix": {
+        "bannerPath": "icons/installer/wix-banner.bmp",
+        "dialogImagePath": "icons/installer/wix-dialog.bmp"
       }
     }
   }
