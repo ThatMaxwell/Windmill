@@ -511,7 +511,7 @@
       $("pBatBar").style.width = `${Math.round(cpu)}%`;
     }
   }
-  async function paintScreenTime() {
+  async function getScreenTime() {
     let st;
     if (isApp) { try { st = await call("screen_time"); } catch (e) {} }
     if (!st) {
@@ -519,6 +519,10 @@
       st = { hours, first_hour: Math.floor(Date.now() / 3.6e6) - 23, total_seconds: hours.reduce((a, b) => a + b, 0),
         top: [{ app: "Browser", seconds: 9000 }, { app: "Code", seconds: 7200 }, { app: "Terminal", seconds: 3100 }] };
     }
+    return st;
+  }
+  async function paintScreenTime() {
+    const st = await getScreenTime();
     const max = Math.max(1, ...st.hours);
     $("pBars").innerHTML = st.hours.map((s, i) => `<i class="${i >= 22 && s ? "hot" : ""}" style="height:${Math.round((s / max) * 100)}%" title="${fmtDur(s)}"></i>`).join("");
     $("pSt").textContent = st.total_seconds ? fmtDur(st.total_seconds) : "Nothing yet";
@@ -1319,6 +1323,22 @@
     requestAnimationFrame(() => rm.classList.add("on"));
   }
   if (onPhone) window.addEventListener("windmill:ready", () => setTimeout(startRemote, 400));
+
+  // ======================= what the home glance reads =======================
+  W.os = {
+    isApp, onPhone, call,
+    windows: () => state.windows,
+    iconFor: w => iconHTML(winIcon(w)),
+    screenTime: getScreenTime,
+    refreshWindows,
+    openPanel, openCC,
+    battery: async () => {
+      if (isApp) { try { return await call("battery"); } catch (e) { return null; } }
+      if (navigator.getBattery) { try { const x = await navigator.getBattery(); return { present: true, percent: Math.round(x.level * 100), charging: x.charging }; } catch (e) {} }
+      return { present: true, percent: 86, charging: true };
+    },
+  };
+  window.dispatchEvent(new CustomEvent("windmill:os"));
 
   // ======================= start =======================
   window.addEventListener("windmill:home", () => {

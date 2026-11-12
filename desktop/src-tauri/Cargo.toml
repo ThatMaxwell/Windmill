@@ -1,6 +1,6 @@
 [package]
 name = "windmill"
-version = "0.2.0"
+version = "0.3.0"
 description = "Windmill: your computer's apps, in one calm space."
 edition = "2021"
 publish = false
