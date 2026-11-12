@@ -1100,15 +1100,47 @@
     const rm = el("div", "rm");
     rm.innerHTML = `
       <section class="rm-connect" id="rmc">
-        <div class="rm-mark" style="color:var(--blue)">${MARK}</div>
-        <h1>Your PC, from here.</h1>
-        <p>On your PC, open Windmill, go to <b>Phone</b> and turn on <b>Let my phone connect</b>. Then type what it shows.</p>
-        <label class="rm-field"><span>PC address</span><input id="rmAddr" inputmode="decimal" placeholder="192.168.1.23" autocomplete="off" spellcheck="false"></label>
-        <label class="rm-field"><span>Code</span><input id="rmCode" inputmode="numeric" placeholder="6 digits" maxlength="7" autocomplete="off"></label>
-        <button class="snext" type="button" id="rmGo"><span>Connect</span><svg viewBox="0 0 18 18" aria-hidden="true"><path d="M4 9h10M10 5l4 4-4 4" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
-        <div class="rm-err" id="rmErr" role="alert"></div>
-        <div class="rm-note">Your phone and PC need to be on the same Wi-Fi.</div>
+        <header class="rmc-top">
+          <span class="rmc-brand">${MARK}<b class="brandword">Windmill</b></span>
+          <button class="rmc-icon" type="button" id="rmSet" aria-label="Settings">${I.gear}</button>
+        </header>
+        <div class="rmc-body">
+          <svg class="rmc-art" viewBox="0 0 240 120" aria-hidden="true">
+            <rect x="8" y="14" width="132" height="84" rx="10" class="a-line"/>
+            <path d="M58 112h32M74 98v14" class="a-line"/>
+            <g transform="translate(74 56) scale(.15)" class="a-mark">${[0, 90, 180, 270].map(a => `<path d="M3 4 L-48 -101 L36 -122 L28 -6 Z" transform="rotate(${a})"/>`).join("")}<circle r="21"/></g>
+            <path d="M150 52c12-10 26-10 38 0" class="a-wave w1"/><path d="M156 62c8-6 18-6 26 0" class="a-wave w2"/>
+            <rect x="196" y="40" width="36" height="66" rx="9" class="a-line"/><path d="M209 98h10" class="a-line"/>
+          </svg>
+          <h1>Connect to your PC</h1>
+          <ol class="rmc-steps"><li><span>On your PC, open Windmill and go to <b>Phone</b>.</span></li><li><span>Turn on <b>Let my phone connect</b>, then type what it shows.</span></li></ol>
+          <label class="rmc-field"><span>PC address</span><input id="rmAddr" inputmode="decimal" placeholder="192.168.1.23" autocomplete="off" autocapitalize="off" spellcheck="false" enterkeyhint="next"></label>
+          <div class="rmc-field"><span id="rmCodeL">Code</span>
+            <div class="rmc-code" id="rmCells"><input id="rmCode" inputmode="numeric" autocomplete="one-time-code" maxlength="6" enterkeyhint="go" aria-labelledby="rmCodeL">${"<i></i>".repeat(6)}</div>
+          </div>
+          <div class="rm-err" id="rmErr" role="alert"></div>
+        </div>
+        <footer class="rmc-foot">
+          <button class="rmc-go" type="button" id="rmGo"><span>Connect</span></button>
+          <p class="rm-note">Your phone and PC need to be on the same Wi-Fi.</p>
+        </footer>
       </section>
+      <div class="rm-sheet" id="rmSheet" hidden>
+        <div class="rms-scrim" data-close></div>
+        <div class="rms-panel" role="dialog" aria-modal="true" aria-label="Settings">
+          <i class="rms-handle" aria-hidden="true"></i>
+          <h2>Settings</h2>
+          <div class="rms-g"><b>Letters</b><div class="rms-seg" data-k="font">
+            <button type="button" data-v="default" style="font-family:Inter,sans-serif">Standard</button>
+            <button type="button" data-v="dyslexic" style="font-family:OpenDyslexic,sans-serif">OpenDyslexic</button>
+            <button type="button" data-v="atkinson" style="font-family:'Atkinson Hyperlegible Next',sans-serif">Atkinson</button></div></div>
+          <div class="rms-g"><b>Look</b><div class="rms-seg" data-k="theme"><button type="button" data-v="light">Light</button><button type="button" data-v="dark">Dark</button></div></div>
+          <div class="rms-g"><b>App icon</b><div class="rms-icons" data-k="icon"></div></div>
+          <div class="rms-row"><span>Bold text</span><button class="sw" type="button" role="switch" aria-checked="false" aria-label="Bold text" data-k="bold"><i></i></button></div>
+          <div class="rms-row"><span>Reduce motion</span><button class="sw" type="button" role="switch" aria-checked="false" aria-label="Reduce motion" data-k="motion"><i></i></button></div>
+          <button class="rms-done" type="button" data-close>Done</button>
+        </div>
+      </div>
       <section class="rm-session" id="rms" hidden>
         <img class="rm-screen" id="rmImg" alt="Your PC's screen">
         <div class="rm-bar glass">
@@ -1132,15 +1164,17 @@
       if (c.length !== 6) return fail("The code has 6 digits.");
       prefs.remoteAddr = a; save();
       $("rmErr").textContent = ""; $("rmGo").disabled = true;
+      let said = false, inSession = false;
+      const failOnce = msg => { if (said) return; said = true; fail(msg); };
       try { ws = new WebSocket(`ws://${a.includes(":") ? a : a + ":47321"}`); } catch (e) { return fail("That address doesn't look right."); }
       ws.binaryType = "blob";
-      const timer = setTimeout(() => { if (ws.readyState !== 1) { ws.close(); fail("Couldn't reach your PC. Check the address and that both are on the same Wi-Fi."); } }, 8000);
+      const timer = setTimeout(() => { if (ws.readyState !== 1) { failOnce("Couldn't reach your PC. Check the address, and that both are on the same Wi-Fi."); ws.close(); } }, 8000);
       ws.onopen = () => { clearTimeout(timer); send({ t: "hello", code: c }); };
       ws.onmessage = ev => {
         if (typeof ev.data === "string") {
           const m = JSON.parse(ev.data);
-          if (m.t === "ok") { $("rmName").textContent = m.name || "PC"; $("rmc").hidden = true; $("rms").hidden = false; $("rmGo").disabled = false; }
-          if (m.t === "error") fail(m.why || "Your PC said no.");
+          if (m.t === "ok") { inSession = true; $("rmName").textContent = m.name || "PC"; $("rmc").hidden = true; $("rms").hidden = false; $("rmGo").disabled = false; }
+          if (m.t === "error") failOnce(m.why || "Your PC said no.");
           return;
         }
         const url = URL.createObjectURL(ev.data);
@@ -1148,11 +1182,75 @@
         img.onerror = () => send({ t: "ack" });
         img.src = url;
       };
-      ws.onclose = () => { clearTimeout(timer); if (!$("rms").hidden) fail("Disconnected from your PC."); else $("rmGo").disabled = false; };
+      ws.onclose = () => {
+        clearTimeout(timer);
+        if (inSession) { inSession = false; if (!$("rms").hidden) fail("Disconnected from your PC."); return; }
+        failOnce("Couldn't reach your PC. Check the address, and that Let my phone connect is on.");
+      };
       ws.onerror = () => {};
     }
     $("rmGo").addEventListener("click", connect);
     code.addEventListener("keydown", e => { if (e.key === "Enter") connect(); });
+    addr.addEventListener("keydown", e => { if (e.key === "Enter") { e.preventDefault(); code.focus(); } });
+    // six boxes for the code; when the sixth digit lands, it connects by itself
+    const cells = [...$("rmCells").querySelectorAll("i")];
+    const paintCells = () => {
+      const v = code.value.replace(/\D/g, "").slice(0, 6); if (code.value !== v) code.value = v;
+      const focused = document.activeElement === code;
+      cells.forEach((c, i) => { c.textContent = v[i] || ""; c.classList.toggle("now", focused && i === Math.min(v.length, 5)); c.classList.toggle("full", !!v[i]); });
+    };
+    code.addEventListener("input", () => { paintCells(); $("rmErr").textContent = ""; if (code.value.length === 6 && addr.value.trim()) { code.blur(); connect(); } });
+    code.addEventListener("focus", paintCells); code.addEventListener("blur", paintCells);
+    paintCells();
+    // while connecting, the button says so
+    new MutationObserver(() => {
+      const busy = $("rmGo").disabled;
+      $("rmGo").classList.toggle("busy", busy);
+      $("rmGo").firstElementChild.textContent = busy ? "Connecting" : "Connect";
+      if (!busy && $("rmErr").textContent) { const box = $("rmCells"); box.classList.remove("shake"); void box.offsetWidth; box.classList.add("shake"); if (navigator.vibrate) navigator.vibrate([12, 40, 12]); }
+    }).observe($("rmGo"), { attributes: true, attributeFilter: ["disabled"] });
+
+    // the settings sheet: letters, look, app icon
+    const sheet = $("rmSheet"), A = window.WindmillA11y;
+    const icons = sheet.querySelector('[data-k="icon"]');
+    icons.innerHTML = Object.entries(APP_ICONS).map(([k, c]) => `<button type="button" class="ip" data-v="${k}" aria-label="${c.label} icon"><span class="appicon" style="background:${c.bg}">${pinwheel(c.fg, c.hole)}</span><small>${c.label}</small></button>`).join("");
+    function paintSheet() {
+      const a = A ? A.get() : {};
+      const on = (k, v) => sheet.querySelectorAll(`[data-k="${k}"] [data-v]`).forEach(b => b.setAttribute("aria-pressed", String(b.dataset.v === v)));
+      on("font", a.font || "default"); on("theme", prefs.theme === "dark" ? "dark" : "light"); on("icon", prefs.appIcon || "blue");
+      sheet.querySelector('[data-k="bold"]').setAttribute("aria-checked", String(!!a.bold));
+      sheet.querySelector('[data-k="motion"]').setAttribute("aria-checked", String(A ? A.reduced() : false));
+    }
+    const openSheet = on => {
+      if (on) { paintSheet(); sheet.hidden = false; requestAnimationFrame(() => sheet.classList.add("on")); }
+      else { sheet.classList.remove("on"); setTimeout(() => { sheet.hidden = true; }, 320); }
+    };
+    $("rmSet").addEventListener("click", () => openSheet(true));
+    sheet.addEventListener("click", async e => {
+      if (e.target.closest("[data-close]")) return openSheet(false);
+      const b = e.target.closest("[data-v], [data-k].sw"); if (!b) return;
+      const k = b.closest("[data-k]").dataset.k, v = b.dataset.v;
+      if (k === "font" && A) A.set({ font: v });
+      if (k === "theme") { prefs.theme = v; save(); W.setTheme(v); }
+      if (k === "bold" && A) A.set({ bold: !A.get().bold });
+      if (k === "motion" && A) A.set({ motion: A.reduced() ? "full" : "reduce" });
+      if (k === "icon") {
+        prefs.appIcon = v; save();
+        if (isApp) call("set_app_icon", { variant: v }).then(() => notify("App icon changed", "Your home screen shows it in a moment.", I.image)).catch(err => notify("Couldn't change the icon", String(err.message || err)));
+      }
+      if (navigator.vibrate) navigator.vibrate(6);
+      paintSheet();
+    });
+    // pull the sheet down to close it
+    let sy = null;
+    const panelEl = sheet.querySelector(".rms-panel");
+    panelEl.addEventListener("touchstart", e => { sy = e.touches[0].clientY; panelEl.style.transition = "none"; }, { passive: true });
+    panelEl.addEventListener("touchmove", e => { if (sy == null) return; const d = Math.max(0, e.touches[0].clientY - sy); panelEl.style.translate = `0 ${d}px`; }, { passive: true });
+    panelEl.addEventListener("touchend", e => {
+      if (sy == null) return; const d = e.changedTouches[0].clientY - sy; sy = null;
+      panelEl.style.transition = ""; panelEl.style.translate = "";
+      if (d > 90) openSheet(false);
+    });
     setInterval(() => { $("rmFps").textContent = $("rms").hidden ? "" : `${frames} fps`; frames = 0; }, 1000);
 
     // where on the PC screen a finger is
