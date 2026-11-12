@@ -96,15 +96,52 @@ svg.word { width: min(860px, 92vw); height: auto; overflow: visible; display: bl
 .pill:active { transform: scale(.97); }
 .pill.loading { padding: 0; gap: 0; justify-content: center; cursor: progress; background: rgb(var(--blue-rgb)); }
 .pill.loading .label { display: none; }
-.pill.loading svg { width: 22px; height: 22px; }
-.spinner {
+.pill .gh { transition: opacity .22s ease, transform .35s cubic-bezier(.3,0,.2,1); }
+.pill.loading .gh { width: 20px; height: 20px; }
+.pill.done-ok .gh { opacity: 0; transform: scale(.55); }
+
+/* the loader inside the dot */
+.pill .ring {
   position: absolute; left: 50%; top: 50%;
-  width: 72px; height: 72px; margin: -36px 0 0 -36px;
-  visibility: hidden; pointer-events: none;
+  width: 54px; height: 54px; margin: -27px 0 0 -27px;
+  opacity: 0; transition: opacity .3s ease;
+  pointer-events: none; z-index: 2; overflow: visible;
 }
-.spinner.on { visibility: visible; animation: spin 0.96s steps(12, jump-none) infinite; }
-.spinner circle { fill: none; stroke: var(--blue); stroke-width: 2.5; stroke-linecap: round; stroke-dasharray: 52 400; }
-@keyframes spin { to { transform: rotate(330deg); } }
+.pill.loading .ring { opacity: 1; transition-delay: .18s; }
+.ring circle, .ring path { fill: none; stroke: #fff; stroke-linecap: round; }
+.ring circle { stroke-width: 2.2; }
+.ring .track { stroke: rgba(255, 255, 255, .2); }
+.ring .arc {
+  transform-box: fill-box; transform-origin: center;
+  stroke-dasharray: 16 132;
+  animation: ring-rot 1.15s linear infinite, ring-breathe 1.7s ease-in-out infinite;
+  transition: opacity .25s ease;
+}
+@keyframes ring-rot { to { transform: rotate(360deg); } }
+@keyframes ring-breathe {
+  0%   { stroke-dasharray: 12 132; stroke-dashoffset: 0; }
+  50%  { stroke-dasharray: 62 132; stroke-dashoffset: -18; }
+  100% { stroke-dasharray: 12 132; stroke-dashoffset: -120; }
+}
+.ring .full {
+  transform-box: fill-box; transform-origin: center; transform: rotate(-90deg);
+  stroke-dasharray: 132; stroke-dashoffset: 132;
+  transition: stroke-dashoffset .55s cubic-bezier(.4, 0, .2, 1);
+}
+.ring .check {
+  stroke-width: 2.6; stroke-linejoin: round;
+  stroke-dasharray: 24; stroke-dashoffset: 24;
+  transition: stroke-dashoffset .45s cubic-bezier(.3, 0, .2, 1) .38s;
+}
+.pill.done-ok .ring .arc { opacity: 0; }
+.pill.done-ok .ring .full { stroke-dashoffset: 0; }
+.pill.done-ok .ring .check { stroke-dashoffset: 0; }
+.pill.closing {
+  transform: scale(0); opacity: 0;
+  transition: transform .5s cubic-bezier(.6, -0.28, .74, .05), opacity .3s ease .2s;
+}
+.cta-slot { transition: height 1s cubic-bezier(.65, 0, .35, 1); }
+.cta-slot.gone { height: 0; }
 .pill:focus-visible { outline: 2px solid var(--blue); outline-offset: 5px; }
 
 /* ---------- hologram ---------- */
@@ -139,12 +176,17 @@ svg.word { width: min(860px, 92vw); height: auto; overflow: visible; display: bl
     <g id="dots"></g>
   </svg>
 
-  <div class="cta-slot">
+  <div class="cta-slot" id="slot">
     <button class="pill" id="signin" type="button">
-      <svg viewBox="0 0 16 16" aria-hidden="true"><path fill="currentColor" d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0 0 16 8c0-4.42-3.58-8-8-8z"/></svg>
+      <svg class="gh" viewBox="0 0 16 16" aria-hidden="true"><path fill="currentColor" d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0 0 16 8c0-4.42-3.58-8-8-8z"/></svg>
       <span class="label">Sign in with GitHub</span>
+      <svg class="ring" viewBox="0 0 54 54" aria-hidden="true">
+        <circle class="track" cx="27" cy="27" r="21"/>
+        <circle class="arc" cx="27" cy="27" r="21"/>
+        <circle class="full" cx="27" cy="27" r="21"/>
+        <path class="check" d="M19.6 27.6 L24.6 32.4 L34.6 21.8"/>
+      </svg>
     </button>
-    <svg class="spinner" id="spinner" viewBox="0 0 72 72" aria-hidden="true"><circle cx="36" cy="36" r="32"/></svg>
   </div>
 </main>
 
@@ -290,10 +332,11 @@ svg.word { width: min(860px, 92vw); height: auto; overflow: visible; display: bl
     later(() => startHologram(), at + 620);
   }
 
-  // ---------- sign in: collapse to the GitHub mark, spinner around it ----------
-  // The app shell listens for "windmill:signin" to start the GitHub flow,
-  // and dispatches "windmill:signin-reset" if it fails or is cancelled.
-  const spinner = $("spinner");
+  // ---------- sign in ----------
+  // The app shell listens for "windmill:signin" to start the GitHub flow, then dispatches
+  // "windmill:signin-success" when it worked, or "windmill:signin-reset" if it failed or was cancelled.
+  // When the page finishes its exit, it dispatches "windmill:ready".
+  const slot = $("slot");
   let fullWidth = 0;
   pill.addEventListener("click", () => {
     if (pill.classList.contains("loading")) return;
@@ -304,19 +347,34 @@ svg.word { width: min(860px, 92vw); height: auto; overflow: visible; display: bl
     pill.style.width = "54px";
     pill.setAttribute("aria-busy", "true");
     pill.setAttribute("aria-label", "Signing in with GitHub");
-    setTimeout(() => spinner.classList.add("on"), 200);
     window.dispatchEvent(new CustomEvent("windmill:signin"));
+    // Preview only: outside the desktop app there is nobody to answer, so pretend it worked.
+    if (!(window.__TAURI__ || window.__TAURI_INTERNALS__ || window.electron))
+      setTimeout(() => window.dispatchEvent(new CustomEvent("windmill:signin-success")), 2600);
   });
+
   window.addEventListener("windmill:signin-reset", () => {
-    spinner.classList.remove("on");
-    pill.classList.remove("loading");
+    pill.classList.remove("loading", "done-ok");
     pill.removeAttribute("aria-busy"); pill.removeAttribute("aria-label");
     pill.style.width = fullWidth + "px";
     setTimeout(() => { pill.style.width = ""; }, 220);
   });
 
+  window.addEventListener("windmill:signin-success", () => {
+    if (!pill.classList.contains("loading") || pill.classList.contains("done-ok")) return;
+    pill.removeAttribute("aria-busy");
+    pill.setAttribute("aria-label", "Signed in");
+    pill.classList.add("done-ok");                      // ring closes, check draws
+    if (holoApi.collapse) holoApi.collapse();           // the field folds away under it
+    const quick = reduce ? 0.2 : 1;
+    setTimeout(() => pill.classList.add("closing"), 1500 * quick);   // the dot closes
+    setTimeout(() => slot.classList.add("gone"), 1850 * quick);      // the name drifts to the centre
+    setTimeout(() => window.dispatchEvent(new CustomEvent("windmill:ready")), 2900 * quick);
+  });
+
   // ---------- hologram (three.js): a wireframe field across the bottom, with a pole windmill on it ----------
   let holoStarted = false;
+  const holoApi = {};
   function startHologram() {
     if (holoStarted || !window.THREE) return;
     holoStarted = true;
@@ -427,7 +485,8 @@ svg.word { width: min(860px, 92vw); height: auto; overflow: visible; display: bl
 
     const showAll = () => { fieldGeo.setDrawRange(0, segs.length * 2); pole.scale.y = 1; head.scale.setScalar(1); footing.scale.setScalar(1); };
     let built = false;
-    addEventListener("resize", () => { place(); if (built) showAll(); render(); });
+    let collapsed = false, spinTimer = 0, rippleTimer = 0;
+    addEventListener("resize", () => { if (collapsed) return; place(); if (built) showAll(); render(); });
 
     if (reduce) { built = true; showAll(); return render(); }
 
@@ -443,8 +502,18 @@ svg.word { width: min(860px, 92vw); height: auto; overflow: visible; display: bl
     [1.28, 0.9, 1].forEach((sc, i) => setTimeout(() => { head.scale.setScalar(sc); render(); }, tHead + i * 50));
     setTimeout(() => { built = true; showAll(); render(); }, tHead + 160);
 
-    // three frames per quarter turn: snappy, calm
-    setTimeout(() => setInterval(() => { wheel.rotation.z += Math.PI / 6; render(); }, 380), tHead + 320);
+        // a smooth, steady turn
+    setTimeout(() => {
+      let last = performance.now();
+      const turn = now => {
+        if (collapsed) return;
+        wheel.rotation.z += Math.min(0.05, (now - last) / 1000) * 1.1;
+        last = now;
+        render();
+        requestAnimationFrame(turn);
+      };
+      requestAnimationFrame(turn);
+    }, tHead + 160);
 
     const ripple = () => {
       [0.5, 1.2, 2.1, 3.2, 4.5, 6].forEach((r, i) => setTimeout(() => {
@@ -452,8 +521,31 @@ svg.word { width: min(860px, 92vw); height: auto; overflow: visible; display: bl
       }, i * 80));
       setTimeout(() => { pulseMat.opacity = 0; render(); }, 6 * 80);
     };
-    setTimeout(() => { ripple(); setInterval(ripple, 3800); }, tHead + 700);
+    setTimeout(() => { if (!collapsed) { ripple(); rippleTimer = setInterval(ripple, 3800); } }, tHead + 700);
     render();
+
+    // After sign-in: the field draws back into the windmill, then the windmill sinks into the ground. Smooth, unhurried.
+    holoApi.collapse = () => {
+      if (collapsed) return;
+      collapsed = true;
+      clearInterval(spinTimer); clearInterval(rippleTimer);
+      pulseMat.opacity = 0;
+      const total = segs.length * 2, D = reduce ? 1 : 2000, t0 = performance.now();
+      const ease = t => t < .5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+      const frame = now => {
+        const p = Math.min(1, (now - t0) / D), e = ease(p);
+        fieldGeo.setDrawRange(0, Math.floor(total * (1 - e) / 2) * 2);
+        const m = ease(Math.max(0, (p - .3) / .7));
+        pole.scale.y = Math.max(1e-3, 1 - m);
+        head.position.y = (H + 0.02) * (1 - m);
+        head.scale.setScalar(Math.max(1e-3, 1 - m));
+        footing.scale.setScalar(Math.max(1e-3, 1 - m));
+        wheel.rotation.z += 0.012 * (1 - m);
+        render();
+        if (p < 1) requestAnimationFrame(frame); else holo.classList.remove("in");
+      };
+      requestAnimationFrame(frame);
+    };
   }
 
   // ---------- go ----------
@@ -470,7 +562,7 @@ svg.word { width: min(860px, 92vw); height: auto; overflow: visible; display: bl
   });
 
   // Press R to replay while working on the intro.
-  addEventListener("keydown", e => { if (e.key === "r" || e.key === "R") play(); });
+  addEventListener("keydown", e => { if (e.key === "r" || e.key === "R") location.reload(); });
 })();
 </script>
 </body>
