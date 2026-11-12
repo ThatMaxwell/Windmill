@@ -82,7 +82,21 @@ pub fn run() {
             shell::remote_new_code,
         ])
         .setup(|app| {
+            // Like pressing F11: Windmill fills the screen from the very first frame, with the taskbar
+            // out of the way. (Settings can bring the taskbar back; F11 switches between the two.)
+            #[cfg(windows)]
+            {
+                win::system::set_taskbar_hidden(true);
+                // Even if something goes badly wrong, the taskbar comes back.
+                let previous = std::panic::take_hook();
+                std::panic::set_hook(Box::new(move |info| {
+                    win::system::set_taskbar_hidden(false);
+                    previous(info);
+                }));
+            }
             if let Some(w) = app.get_webview_window("main") {
+                #[cfg(desktop)]
+                let _ = w.set_fullscreen(true);
                 let _ = w.set_focus();
             }
             appicon::apply_window_icon(app.handle());

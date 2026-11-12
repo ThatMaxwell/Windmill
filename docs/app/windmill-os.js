@@ -769,7 +769,7 @@
   keys.setAttribute("role", "dialog"); keys.setAttribute("aria-label", "Keyboard shortcuts");
   const KEYS = [
     ["Windmill panel", isApp ? ["Ctrl", "Win"] : ["Windmill button"]], ["Windmill Search", [MOD, "K"]], ["All apps", [MOD, "Shift", "A"]],
-    ["Control center", [MOD, "Shift", "C"]], ["Lock Windmill", [MOD, "Shift", "L"]], ["Accessibility", [MOD, "Shift", "U"]], ["These shortcuts", [MOD, "/"]], ["Close what's open", ["Esc"]],
+    ["Control center", [MOD, "Shift", "C"]], ["Lock Windmill", [MOD, "Shift", "L"]], ["Accessibility", [MOD, "Shift", "U"]], ...(isApp ? [["Full screen", ["F11"]]] : []), ["These shortcuts", [MOD, "/"]], ["Close what's open", ["Esc"]],
   ];
   keys.innerHTML = `<h3>Shortcuts</h3>` + KEYS.map(([k, v]) => `<div class="krow2"><span>${esc(k)}</span><span>${v.map(x => `<kbd class="os-kbd">${esc(x)}</kbd>`).join("")}</span></div>`).join("");
   document.body.appendChild(keys);
@@ -806,6 +806,16 @@
     else if (mod && e.shiftKey && (e.key === "A" || e.key === "a")) { e.preventDefault(); launcher.classList.contains("on") ? closeLauncher() : openLauncher(); }
     else if (mod && e.shiftKey && (e.key === "C" || e.key === "c")) { e.preventDefault(); cc.classList.contains("on") ? closeCC() : openCC(); }
   }, true);
+  // F11: full screen with the taskbar out of the way, or back to a window with the taskbar.
+  if (isApp && !onPhone) addEventListener("keydown", e => {
+    if (e.key !== "F11") return;
+    e.preventDefault();
+    prefs.hideTaskbar = !(prefs.hideTaskbar !== false); save();
+    call("set_taskbar_hidden", { hidden: prefs.hideTaskbar }).catch(() => {});
+    const sb = $("swBar"); if (sb) sb.setAttribute("aria-checked", String(prefs.hideTaskbar));
+    notify(prefs.hideTaskbar ? "Full screen" : "Taskbar is back", prefs.hideTaskbar ? "Press F11 to bring the taskbar back." : "Press F11 to go full screen again.");
+  }, true);
+
   // In a browser, Ctrl + Win (Meta) still works when the system lets the page see it.
   let metaCtrl = false;
   if (!isApp) {
@@ -947,7 +957,7 @@
       <h3>Windmill</h3><p class="lead">${isApp ? "How Windmill sits on this PC." : "These work in the Windows app."}</p>
       <div class="rows">
         <div class="srow tall"><span>Start with Windows<span class="sub2">Windmill opens when your PC starts.</span></span><button class="sw" type="button" role="switch" aria-checked="false" aria-label="Start with Windows" id="swStart"><i></i></button></div>
-        <div class="srow tall"><span>Hide the Windows taskbar<span class="sub2">Windmill takes the whole screen. It comes back when Windmill closes.</span></span><button class="sw" type="button" role="switch" aria-checked="false" aria-label="Hide the Windows taskbar" id="swBar"><i></i></button></div>
+        <div class="srow tall"><span>Full screen<span class="sub2">Windmill covers the whole screen and the taskbar steps aside, so your apps get its space too. Press F11 to switch. The taskbar always comes back when Windmill closes.</span></span><button class="sw" type="button" role="switch" aria-checked="false" aria-label="Full screen" id="swBar"><i></i></button></div>
         <div class="srow tall"><span>Lock after<span class="sub2">While Windmill is in front and you step away.</span></span><span class="chips" id="lockChips">${[0, 5, 15, 30].map(m => `<button class="chip" type="button" data-m="${m}">${m ? m + " min" : "Never"}</button>`).join("")}</span></div>
         <div class="srow tall"><span>Lock screen PIN<span class="sub2" id="pinSub"></span></span><span class="chips" id="pinBox"></span></div>
         <div class="srow"><span>Keyboard shortcuts</span><button class="os-btn" type="button" id="showKeys">Show</button></div>
@@ -969,7 +979,7 @@
     catch (err) { notify("Couldn't change that", String(err.message || err)); }
   });
   $("swBar").addEventListener("click", async e => {
-    if (!isApp) return notify("Hide the taskbar", "Available in the Windows app.");
+    if (!isApp) return notify("Full screen", "Available in the Windows app.");
     prefs.hideTaskbar = !(prefs.hideTaskbar !== false); save();
     e.currentTarget.setAttribute("aria-checked", String(prefs.hideTaskbar));
     call("set_taskbar_hidden", { hidden: prefs.hideTaskbar }).catch(() => {});

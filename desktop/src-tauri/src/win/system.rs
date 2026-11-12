@@ -8,7 +8,11 @@ use windows::Win32::System::Power::{GetSystemPowerStatus, SetSuspendState, SYSTE
 use windows::Win32::System::Shutdown::LockWorkStation;
 use windows::Win32::System::SystemInformation::{GetTickCount64, GlobalMemoryStatusEx, MEMORYSTATUSEX};
 use windows::Win32::System::Threading::GetSystemTimes;
-use windows::Win32::UI::WindowsAndMessaging::{FindWindowW, ShowWindow, SW_HIDE, SW_SHOW};
+use windows::Win32::Foundation::RECT;
+use windows::Win32::UI::WindowsAndMessaging::{
+    FindWindowW, GetSystemMetrics, GetWindowRect, ShowWindow, SystemParametersInfoW, SM_CXSCREEN, SM_CYSCREEN, SPIF_SENDCHANGE,
+    SPI_GETWORKAREA, SPI_SETWORKAREA, SW_HIDE, SW_SHOW, SYSTEM_PARAMETERS_INFO_UPDATE_FLAGS,
+};
 
 #[derive(Serialize)]
 pub struct Battery {
@@ -162,7 +166,12 @@ pub fn power(action: &str) -> Result<(), String> {
     }
 }
 
-/// Hides (or brings back) the Windows taskbar on every screen.
+/// The work area (the screen minus the taskbar) from before Windmill hid the taskbar.
+static SAVED_WORK_AREA: Mutex<Option<(i32, i32, i32, i32)>> = Mutex::new(None);
+
+/// Hides (or brings back) the Windows taskbar on every screen. While it's hidden, its space
+/// goes to your apps too, so a maximized app fills the screen. Bringing it back restores
+/// the space exactly as it was.
 pub fn set_taskbar_hidden(hidden: bool) {
     unsafe {
         for class in [w!("Shell_TrayWnd"), w!("Shell_SecondaryTrayWnd")] {
@@ -170,5 +179,38 @@ pub fn set_taskbar_hidden(hidden: bool) {
                 let _ = ShowWindow(h, if hidden { SW_HIDE } else { SW_SHOW });
             }
         }
+        let mut saved = match SAVED_WORK_AREA.lock() { Ok(g) => g, Err(p) => p.into_inner() };
+        if hidden {
+            if saved.is_none() {
+                let mut r = RECT::default();
+                if SystemParametersInfoW(SPI_GETWORKAREA, 0, Some(&mut r as *mut RECT as *mut _), SYSTEM_PARAMETERS_INFO_UPDATE_FLAGS(0)).is_ok() {
+                    *saved = Some((r.left, r.top, r.right, r.bottom));
+                }
+            }
+            let mut full = RECT { left: 0, top: 0, right: GetSystemMetrics(SM_CXSCREEN), bottom: GetSystemMetrics(SM_CYSCREEN) };
+            let _ = SystemParametersInfoW(SPI_SETWORKAREA, 0, Some(&mut full as *mut RECT as *mut _), SPIF_SENDCHANGE);
+        } else {
+            let back = saved.take().or_else(work_area_from_taskbar);
+            if let Some((left, top, right, bottom)) = back {
+                let mut r = RECT { left, top, right, bottom };
+                let _ = SystemParametersInfoW(SPI_SETWORKAREA, 0, Some(&mut r as *mut RECT as *mut _), SPIF_SENDCHANGE);
+            }
+        }
+    }
+}
+
+/// If Windmill never saw the old work area (say it closed badly last time), work it out
+/// from where the taskbar sits: the whole screen minus the taskbar's edge.
+fn work_area_from_taskbar() -> Option<(i32, i32, i32, i32)> {
+    unsafe {
+        let (w, h) = (GetSystemMetrics(SM_CXSCREEN), GetSystemMetrics(SM_CYSCREEN));
+        let tray = FindWindowW(w!("Shell_TrayWnd"), None).ok()?;
+        let mut t = RECT::default();
+        GetWindowRect(tray, &mut t).ok()?;
+        let (tw, th) = (t.right - t.left, t.bottom - t.top);
+        if tw < 8 || th < 8 { return Some((0, 0, w, h)); }          // an auto-hiding taskbar takes no room
+        Some(if tw >= th {
+            if t.top <= 0 { (0, t.bottom, w, h) } else { (0, 0, w, t.top) }
+        } else if t.left <= 0 { (t.right, 0, w, h) } else { (0, 0, t.left, h) })
     }
 }

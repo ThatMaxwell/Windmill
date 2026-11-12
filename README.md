@@ -17,7 +17,7 @@
 
 ![The Windmill home on the Deep blue wallpaper: a big clock, weather, battery, screen time and open windows, and the dock with your apps](docs/assets/deep/home.webp)
 
-> **Early preview.** Windmill 0.3 works, but expect rough edges. Bug reports are welcome in [Issues](https://github.com/ThatMaxwell/Windmill/issues).
+> **Early preview.** Windmill 0.4 works, but expect rough edges. Bug reports are welcome in [Issues](https://github.com/ThatMaxwell/Windmill/issues).
 
 ## What it is
 
@@ -57,6 +57,7 @@ Windmill is **not** a new operating system. It's an app that runs full screen on
 | **Ctrl + Shift + C** | Control center |
 | **Ctrl + Shift + L** | Lock Windmill |
 | **Ctrl + Shift + U** | Accessibility |
+| **F11** | Full screen, or back to a window with the taskbar |
 | **Ctrl + /** | Show all shortcuts |
 | **Esc** | Close whatever is open |
 
@@ -67,6 +68,8 @@ Get both from the [latest release](https://github.com/ThatMaxwell/Windmill/relea
 **Windows 10 or 11 (64-bit):** download `Windmill-Windows-Setup.exe` and run it. It installs just for you, with no admin rights needed. The installer isn't signed yet, so Windows SmartScreen may warn you: choose **More info → Run anyway**. Windmill starts with Windows from then on; you can switch that off in Settings.
 
 **Android 7 or newer:** download `Windmill-Android.apk` on your phone and open it. Android will ask you to allow installing apps from your browser the first time. Updating from an older preview? Uninstall it first: preview builds aren't signed with one permanent key yet.
+
+**Full screen from the start.** Windmill opens full screen, like pressing F11, and the Windows taskbar steps aside so your apps get its space too. Press **F11** any time to switch to a window with the taskbar.
 
 **To leave Windmill:** press **Ctrl + Win** and choose **Shut down**. Windmill asks your open apps to close (so they can save), quits, and brings the Windows taskbar back.
 
