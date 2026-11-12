@@ -31,7 +31,7 @@ body {
 
 /* ---------- centre column ---------- */
 .center {
-  position: absolute; inset: 0;
+  position: absolute; inset: 0; z-index: 1;
   display: grid; place-items: center; align-content: center;
   gap: 4px;
   padding: 0 max(16px, env(safe-area-inset-right, 0px)) 0 max(16px, env(safe-area-inset-left, 0px));
@@ -58,7 +58,7 @@ svg.word { width: min(860px, 92vw); height: auto; overflow: visible; display: bl
 @keyframes tick    { from { transform: rotate(0deg) } to { transform: rotate(-90deg) } }
 
 /* ---------- Sign in with GitHub ---------- */
-.cta-slot { height: 60px; display: grid; place-items: center; }
+.cta-slot { position: relative; height: 60px; display: grid; place-items: center; }
 .pill {
   position: relative;
   isolation: isolate;
@@ -74,7 +74,9 @@ svg.word { width: min(860px, 92vw); height: auto; overflow: visible; display: bl
   box-shadow:
     0 1px 2px rgba(var(--blue-rgb), .25),
     0 8px 22px -10px rgba(var(--blue-rgb), .55);
-  transition: background .12s steps(2, jump-none);
+  white-space: nowrap;
+  overflow: hidden;
+  transition: background .12s steps(2, jump-none), width .2s steps(3, jump-none);
   visibility: hidden;
   clip-path: inset(0 100% 0 0 round 999px);
 }
@@ -92,15 +94,25 @@ svg.word { width: min(860px, 92vw); height: auto; overflow: visible; display: bl
 
 .pill:hover { background: #0036E0; }
 .pill:active { transform: scale(.97); }
+.pill.loading { padding: 0; gap: 0; justify-content: center; cursor: progress; background: rgb(var(--blue-rgb)); }
+.pill.loading .label { display: none; }
+.pill.loading svg { width: 22px; height: 22px; }
+.spinner {
+  position: absolute; left: 50%; top: 50%;
+  width: 72px; height: 72px; margin: -36px 0 0 -36px;
+  visibility: hidden; pointer-events: none;
+}
+.spinner.on { visibility: visible; animation: spin 0.96s steps(12, jump-none) infinite; }
+.spinner circle { fill: none; stroke: var(--blue); stroke-width: 2.5; stroke-linecap: round; stroke-dasharray: 52 400; }
+@keyframes spin { to { transform: rotate(330deg); } }
 .pill:focus-visible { outline: 2px solid var(--blue); outline-offset: 5px; }
 
 /* ---------- hologram ---------- */
 .holo {
   position: fixed;
-  left: max(8px, env(safe-area-inset-left, 0px));
-  bottom: max(6px, env(safe-area-inset-bottom, 0px));
-  width: min(400px, 46vw);
-  aspect-ratio: 400 / 250;
+  left: 0; right: 0; bottom: 0;
+  height: clamp(220px, 37vh, 380px);
+  z-index: 0;
   visibility: hidden;
   pointer-events: none;
 }
@@ -132,6 +144,7 @@ svg.word { width: min(860px, 92vw); height: auto; overflow: visible; display: bl
       <svg viewBox="0 0 16 16" aria-hidden="true"><path fill="currentColor" d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0 0 16 8c0-4.42-3.58-8-8-8z"/></svg>
       <span class="label">Sign in with GitHub</span>
     </button>
+    <svg class="spinner" id="spinner" viewBox="0 0 72 72" aria-hidden="true"><circle cx="36" cy="36" r="32"/></svg>
   </div>
 </main>
 
@@ -277,138 +290,169 @@ svg.word { width: min(860px, 92vw); height: auto; overflow: visible; display: bl
     later(() => startHologram(), at + 620);
   }
 
-  // Hook for the app shell: listen for this event to start the GitHub sign-in flow.
-  pill.addEventListener("click", () => window.dispatchEvent(new CustomEvent("windmill:signin")));
+  // ---------- sign in: collapse to the GitHub mark, spinner around it ----------
+  // The app shell listens for "windmill:signin" to start the GitHub flow,
+  // and dispatches "windmill:signin-reset" if it fails or is cancelled.
+  const spinner = $("spinner");
+  let fullWidth = 0;
+  pill.addEventListener("click", () => {
+    if (pill.classList.contains("loading")) return;
+    fullWidth = pill.offsetWidth;
+    pill.style.width = fullWidth + "px";
+    void pill.offsetWidth;
+    pill.classList.add("loading");
+    pill.style.width = "54px";
+    pill.setAttribute("aria-busy", "true");
+    pill.setAttribute("aria-label", "Signing in with GitHub");
+    setTimeout(() => spinner.classList.add("on"), 200);
+    window.dispatchEvent(new CustomEvent("windmill:signin"));
+  });
+  window.addEventListener("windmill:signin-reset", () => {
+    spinner.classList.remove("on");
+    pill.classList.remove("loading");
+    pill.removeAttribute("aria-busy"); pill.removeAttribute("aria-label");
+    pill.style.width = fullWidth + "px";
+    setTimeout(() => { pill.style.width = ""; }, 220);
+  });
 
-  // ---------- hologram (three.js): a wireframe field with a lattice windmill on it ----------
+  // ---------- hologram (three.js): a wireframe field across the bottom, with a pole windmill on it ----------
   let holoStarted = false;
   function startHologram() {
     if (holoStarted || !window.THREE) return;
     holoStarted = true;
     const T = THREE, BLUE = 0x0141FD;
     const canvas = $("holoCanvas");
-    const W = canvas.clientWidth || 400, H = canvas.clientHeight || 250;
     const renderer = new T.WebGLRenderer({ canvas, alpha: true, antialias: true });
     renderer.setPixelRatio(Math.min(devicePixelRatio || 1, 2));
-    renderer.setSize(W, H, false);
     const scene = new T.Scene();
-    scene.fog = new T.Fog(0xffffff, 6, 13.5);
-    const camera = new T.PerspectiveCamera(30, W / H, 0.1, 40);
-    camera.position.set(-3.3, 2.5, 5.9);
-    camera.lookAt(1.9, 0.95, -0.7);
+    scene.fog = new T.Fog(0xffffff, 7, 21);
+    const camera = new T.PerspectiveCamera(28, 1, 0.1, 60);
+    camera.position.set(0, 1.45, 7);
+    camera.lookAt(0, 0.95, 0);
     const render = () => renderer.render(scene, camera);
 
     const lineMat = (opacity, fog = true) => new T.LineBasicMaterial({ color: BLUE, transparent: true, opacity, fog });
-    const ground = (x, z) => 0.11 * Math.sin(x * 0.8 + 0.7) + 0.07 * Math.cos(z * 1.3 + x * 0.35) - 0.04;
+    const fillMat = opacity => new T.MeshBasicMaterial({ color: BLUE, transparent: true, opacity, depthWrite: false, side: T.DoubleSide, fog: false });
+    const ground = (x, z) => 0.12 * Math.sin(x * 0.55 + 0.7) + 0.08 * Math.cos(z * 0.9 + x * 0.3) - 0.05;
     const toGeo = list => {
-      const a = new Float32Array(list.length * 6);
-      list.forEach((sg, i) => a.set([...sg[0], ...sg[1]], i * 6));
-      const g = new T.BufferGeometry(); g.setAttribute("position", new T.BufferAttribute(a, 3));
+      const arr = new Float32Array(list.length * 6);
+      list.forEach((sg, i) => arr.set([...sg[0], ...sg[1]], i * 6));
+      const g = new T.BufferGeometry(); g.setAttribute("position", new T.BufferAttribute(arr, 3));
       return g;
     };
 
-    // the field: a gently rolling grid, ordered by distance so it can grow out from the tower
-    const X0 = -2.5, X1 = 8, Z0 = -3, Z1 = 2.5, CELL = 0.5, SUB = 0.125;
-    const segs = [];
-    const P = (x, z) => [x, ground(x, z), z];
-    for (let z = Z0; z <= Z1 + 1e-6; z += CELL)
-      for (let x = X0; x < X1 - 1e-6; x += SUB) segs.push([P(x, z), P(x + SUB, z), Math.hypot(x + SUB / 2, z)]);
-    for (let x = X0; x <= X1 + 1e-6; x += CELL)
-      for (let z = Z0; z < Z1 - 1e-6; z += SUB) segs.push([P(x, z), P(x, z + SUB), Math.hypot(x, z + SUB / 2)]);
-    segs.sort((a, b) => a[2] - b[2]);
-    const fieldGeo = toGeo(segs);
-    fieldGeo.setDrawRange(0, 0);
-    scene.add(new T.LineSegments(fieldGeo, lineMat(0.55)));
+    // where the windmill stands (moved with the window's shape in place())
+    const site = { x: -6, z: -1.6 };
 
-    // the tower: four tapering legs with rings and cross-bracing, built level by level
-    const BASE = 0.44, TOP = 0.07, TALL = 2.25, LEVELS = 6, y0 = ground(0, 0);
-    const corners = [[-1, -1], [1, -1], [1, 1], [-1, 1]];
-    const at = (c, t) => {
-      const w = BASE + (TOP - BASE) * t;
-      return [c[0] * w, y0 + TALL * t, c[1] * w];
-    };
-    const towerSegs = [], levelEnds = [];
-    corners.forEach((c, i) => towerSegs.push([at(c, 0), at(corners[(i + 1) % 4], 0)]));
-    for (let L = 0; L < LEVELS; L++) {
-      const t0 = L / LEVELS, t1 = (L + 1) / LEVELS;
-      corners.forEach((c, i) => {
-        const n = corners[(i + 1) % 4];
-        towerSegs.push([at(c, t0), at(c, t1)]);         // leg
-        towerSegs.push([at(c, t1), at(n, t1)]);         // ring
-        towerSegs.push([at(c, t0), at(n, t1)]);         // brace
-        towerSegs.push([at(n, t0), at(c, t1)]);         // brace
-      });
-      levelEnds.push(towerSegs.length * 2);
+    // the field: one rolling grid under the whole window
+    const X0 = -24, X1 = 24, Z0 = -18, Z1 = 4.2, CELL = 0.6, SUB = 0.2;
+    let segs = [], fieldGeo = null, fieldLines = null;
+    function buildField() {
+      segs = [];
+      const P = (x, z) => [x, ground(x, z), z];
+      for (let z = Z0; z <= Z1 + 1e-6; z += CELL)
+        for (let x = X0; x < X1 - 1e-6; x += SUB) segs.push([P(x, z), P(x + SUB, z), Math.hypot(x + SUB / 2 - site.x, z - site.z)]);
+      for (let x = X0; x <= X1 + 1e-6; x += CELL)
+        for (let z = Z0; z < Z1 - 1e-6; z += SUB) segs.push([P(x, z), P(x, z + SUB), Math.hypot(x - site.x, z + SUB / 2 - site.z)]);
+      segs.sort((a, b) => a[2] - b[2]);
+      if (fieldLines) { scene.remove(fieldLines); fieldGeo.dispose(); }
+      fieldGeo = toGeo(segs);
+      fieldLines = new T.LineSegments(fieldGeo, lineMat(0.5));
+      scene.add(fieldLines);
     }
-    const towerGeo = toGeo(towerSegs);
-    towerGeo.setDrawRange(0, 0);
-    scene.add(new T.LineSegments(towerGeo, lineMat(0.95, false)));
 
-    // the head: the Windmill mark as the wheel, with a shaft and a tail vane
+    // the windmill: a slim tapered pole, a nacelle, the Windmill mark as the wheel, and a tail vane
+    const mill = new T.Group();
+    const pole = new T.Group();
+    const H = 2.1, RB = 0.075, RT = 0.034, SIDES = 6, RINGS = [0, 0.5, 1];
+    const poleSegs = [];
+    const rim = (t, i) => { const r = RB + (RT - RB) * t, a = i / SIDES * Math.PI * 2; return [Math.cos(a) * r, H * t, Math.sin(a) * r]; };
+    for (let i = 0; i < SIDES; i++) poleSegs.push([rim(0, i), rim(1, i)]);
+    RINGS.forEach(t => { for (let i = 0; i < SIDES; i++) poleSegs.push([rim(t, i), rim(t, (i + 1) % SIDES)]); });
+    pole.add(new T.LineSegments(toGeo(poleSegs), lineMat(0.95, false)));
+    const poleBody = new T.CylinderGeometry(RT, RB, H, SIDES, 1, true); poleBody.translate(0, H / 2, 0);
+    pole.add(new T.Mesh(poleBody, fillMat(0.14)));
+    mill.add(pole);
+
+    // footing rings on the ground
+    const circle = (r, n = 48) => { const pts = []; for (let i = 0; i <= n; i++) { const a = i / n * Math.PI * 2; pts.push(new T.Vector3(Math.cos(a) * r, 0, Math.sin(a) * r)); } return new T.BufferGeometry().setFromPoints(pts); };
+    const footing = new T.Group();
+    footing.add(new T.Line(circle(0.22), lineMat(0.9, false)), new T.Line(circle(0.42), lineMat(0.45, false)));
+    footing.position.y = 0.01;
+    mill.add(footing);
+
     const head = new T.Group();
-    head.position.set(0, y0 + TALL + 0.04, 0);
-    head.rotation.y = -0.62;
+    head.position.y = H + 0.02;
+    head.rotation.y = 0.32;
+    const nacelleGeo = new T.BoxGeometry(0.15, 0.15, 0.46);
+    head.add(new T.Mesh(nacelleGeo, fillMat(0.25)), new T.LineSegments(new T.EdgesGeometry(nacelleGeo), lineMat(1, false)));
     const wheel = new T.Group();
-    wheel.position.z = 0.2;
+    wheel.position.z = 0.3;
     const pts = BLADE.split(" ").map(p => p.split(",").map(Number)).map(([x, y]) => new T.Vector2((x - 50) / 50, -(y - 50) / 50));
-    const bladeGeo = new T.ExtrudeGeometry(new T.Shape(pts), { depth: 0.1, bevelEnabled: false });
-    bladeGeo.translate(0, 0, -0.05);
-    const fill = new T.MeshBasicMaterial({ color: BLUE, transparent: true, opacity: 0.2, depthWrite: false, side: T.DoubleSide, fog: false });
+    const bladeGeo = new T.ExtrudeGeometry(new T.Shape(pts), { depth: 0.08, bevelEnabled: false });
+    bladeGeo.translate(0, 0, -0.04);
     for (let k = 0; k < 4; k++) {
       const b = new T.Group();
-      b.add(new T.Mesh(bladeGeo, fill), new T.LineSegments(new T.EdgesGeometry(bladeGeo), lineMat(1, false)));
+      b.add(new T.Mesh(bladeGeo, fillMat(0.22)), new T.LineSegments(new T.EdgesGeometry(bladeGeo), lineMat(1, false)));
       b.rotation.z = -k * Math.PI / 2;
       wheel.add(b);
     }
-    const coreGeo = new T.CylinderGeometry(0.17, 0.17, 0.14, 20); coreGeo.rotateX(Math.PI / 2);
-    wheel.add(new T.Mesh(coreGeo, new T.MeshBasicMaterial({ color: BLUE, transparent: true, opacity: 0.6, fog: false })));
-    wheel.scale.setScalar(0.5);
-    const vane = new T.Shape([new T.Vector2(0, 0), new T.Vector2(0.55, 0.16), new T.Vector2(0.55, -0.2), new T.Vector2(0, -0.04)]);
-    const vaneGeo = new T.ShapeGeometry(vane); vaneGeo.rotateY(Math.PI / 2); vaneGeo.translate(0, 0, -0.32);
-    head.add(
-      wheel,
-      new T.LineSegments(toGeo([[[0, 0, 0.2], [0, 0, -0.32]]]), lineMat(1, false)),
-      new T.Mesh(vaneGeo, fill),
-      new T.LineSegments(new T.EdgesGeometry(vaneGeo), lineMat(1, false)),
-    );
-    head.scale.setScalar(0);
-    scene.add(head);
+    const coreGeo = new T.CylinderGeometry(0.17, 0.17, 0.12, 20); coreGeo.rotateX(Math.PI / 2);
+    wheel.add(new T.Mesh(coreGeo, fillMat(0.7)));
+    wheel.scale.setScalar(0.56);
+    const vane = new T.Shape([new T.Vector2(0, 0.02), new T.Vector2(0.62, 0.2), new T.Vector2(0.62, -0.22), new T.Vector2(0, -0.04)]);
+    const vaneGeo = new T.ShapeGeometry(vane); vaneGeo.rotateY(Math.PI / 2); vaneGeo.translate(0, 0, -0.24);
+    head.add(wheel, new T.Mesh(vaneGeo, fillMat(0.18)), new T.LineSegments(new T.EdgesGeometry(vaneGeo), lineMat(1, false)));
+    mill.add(head);
+    scene.add(mill);
 
-    // a pulse that ripples out from the foot of the tower now and then
-    const ringPts = [];
-    for (let i = 0; i <= 72; i++) { const a = i / 72 * Math.PI * 2; ringPts.push(new T.Vector3(Math.cos(a), 0, Math.sin(a))); }
+    // a ripple that runs out from the foot of the pole now and then
     const pulseMat = lineMat(0, true); pulseMat.depthTest = false;
-    const pulse = new T.Line(new T.BufferGeometry().setFromPoints(ringPts), pulseMat);
-    pulse.position.y = y0 + 0.02;
+    const pulse = new T.Line(circle(1, 96), pulseMat);
     scene.add(pulse);
 
-    holo.classList.add("in");
-    if (reduce) {
-      fieldGeo.setDrawRange(0, segs.length * 2);
-      towerGeo.setDrawRange(0, towerSegs.length * 2);
-      head.scale.setScalar(1);
-      return render();
+    function place() {
+      const w = canvas.clientWidth || innerWidth, h = canvas.clientHeight || 260;
+      renderer.setSize(w, h, false);
+      camera.aspect = w / h; camera.updateProjectionMatrix();
+      const depth = camera.position.z - site.z;
+      const halfW = Math.tan(T.MathUtils.degToRad(camera.fov / 2)) * depth * camera.aspect;
+      site.x = -halfW * (w < 700 ? 0.62 : 0.7);
+      mill.position.set(site.x, ground(site.x, site.z), site.z);
+      pulse.position.set(site.x, ground(site.x, site.z) + 0.02, site.z);
+      buildField();
     }
+    place();
+    holo.classList.add("in");
 
-    // build-up: the field spreads from the tower in hard steps, then the tower stacks, then the wheel pops on
+    const showAll = () => { fieldGeo.setDrawRange(0, segs.length * 2); pole.scale.y = 1; head.scale.setScalar(1); footing.scale.setScalar(1); };
+    let built = false;
+    addEventListener("resize", () => { place(); if (built) showAll(); render(); });
+
+    if (reduce) { built = true; showAll(); return render(); }
+
+    // build-up, all in hard steps: the field spreads from the pole, the pole shoots up, the head pops on
+    fieldGeo.setDrawRange(0, 0); pole.scale.y = 0; head.scale.setScalar(0); footing.scale.setScalar(0);
     const FIELD_STEPS = 7;
     for (let k = 1; k <= FIELD_STEPS; k++)
-      setTimeout(() => { fieldGeo.setDrawRange(0, Math.round(segs.length * 2 * (k / FIELD_STEPS) ** 1.6)); render(); }, k * 60);
-    const tTower = 220;
-    levelEnds.forEach((end, L) => setTimeout(() => { towerGeo.setDrawRange(0, end); render(); }, tTower + L * 65));
-    const tHead = tTower + LEVELS * 65 + 40;
-    [1.3, 0.92, 1].forEach((sc, i) => setTimeout(() => { head.scale.setScalar(sc); render(); }, tHead + i * 50));
+      setTimeout(() => { fieldGeo.setDrawRange(0, Math.round(segs.length * 2 * (k / FIELD_STEPS) ** 2)); render(); }, k * 60);
+    const tPole = 200;
+    [[0.6, 1], [1.25, 1], [0.92, 1]].forEach(([f], i) => setTimeout(() => { footing.scale.setScalar(f === 0.6 ? 0.6 : f > 1 ? 1.2 : 1); render(); }, tPole + i * 45));
+    [0.3, 0.62, 1.06, 1].forEach((sy, i) => setTimeout(() => { pole.scale.y = sy; render(); }, tPole + 90 + i * 55));
+    const tHead = tPole + 90 + 4 * 55 + 30;
+    [1.28, 0.9, 1].forEach((sc, i) => setTimeout(() => { head.scale.setScalar(sc); render(); }, tHead + i * 50));
+    setTimeout(() => { built = true; showAll(); render(); }, tHead + 160);
 
     // three frames per quarter turn: snappy, calm
-    setTimeout(() => setInterval(() => { wheel.rotation.z += Math.PI / 6; render(); }, 380), tHead + 300);
+    setTimeout(() => setInterval(() => { wheel.rotation.z += Math.PI / 6; render(); }, 380), tHead + 320);
 
     const ripple = () => {
-      [0.35, 0.8, 1.3, 1.85, 2.45, 3.1].forEach((r, i) => setTimeout(() => {
-        pulse.scale.setScalar(r); pulseMat.opacity = 0.8 * (1 - i / 6); render();
-      }, i * 75));
-      setTimeout(() => { pulseMat.opacity = 0; render(); }, 6 * 75);
+      [0.5, 1.2, 2.1, 3.2, 4.5, 6].forEach((r, i) => setTimeout(() => {
+        pulse.scale.setScalar(r); pulseMat.opacity = 0.75 * (1 - i / 6); render();
+      }, i * 80));
+      setTimeout(() => { pulseMat.opacity = 0; render(); }, 6 * 80);
     };
-    setTimeout(() => { ripple(); setInterval(ripple, 3600); }, tHead + 700);
+    setTimeout(() => { ripple(); setInterval(ripple, 3800); }, tHead + 700);
     render();
   }
 
