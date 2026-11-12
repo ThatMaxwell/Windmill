@@ -1,0 +1,17 @@
+{
+  "name": "windmill-desktop",
+  "private": true,
+  "version": "0.1.0",
+  "description": "The Windmill app for Windows and Android, built with Tauri. The interface lives in ../docs.",
+  "scripts": {
+    "tauri": "tauri",
+    "dev": "tauri dev",
+    "build": "tauri build",
+    "icons": "tauri icon app-icon.png",
+    "android:init": "tauri android init",
+    "android:build": "tauri android build --apk"
+  },
+  "devDependencies": {
+    "@tauri-apps/cli": "^2"
+  }
+}
