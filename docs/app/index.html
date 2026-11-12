@@ -8,7 +8,7 @@
 <!-- For the shipped app, bundle these fonts and three.js locally instead of loading them from the web. -->
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Piazzolla:opsz,wght@8..30,400&family=Inter:wght@400;500;600&display=block">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Piazzolla:opsz,wght@8..30,400&family=Inter:wght@400;500;600;700&display=block">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <style>
 :root {
@@ -154,10 +154,8 @@ svg.word { width: min(860px, 92vw); height: auto; overflow: visible; display: bl
 }
 .holo.in { visibility: visible; }
 
-@media (prefers-reduced-motion: reduce) {
-  .pill.in { animation: none; }
-  .pill.in { clip-path: none; }
-}
+html.a-rm .pill.in { animation: none; }
+html.a-rm .pill.in { clip-path: none; }
 
 /* ---------- home: what opens after sign-in ---------- */
 .center.leaving { opacity: 0; transition: opacity .9s ease; }
@@ -587,10 +585,8 @@ html.cur-dot, html.cur-dot * {
 .sfoot span { display: inline-flex; align-items: center; gap: 4px; }
 .sfoot .sfoot-r { margin-left: auto; }
 @media (max-width: 640px) { .sfoot { display: none; } .phone, .grid4 { grid-template-columns: 1fr; grid-template-rows: none; height: auto; } .curs { grid-template-columns: 1fr 1fr; } }
-@media (prefers-reduced-motion: reduce) {
-  .win, .search, .scrim, .wall i, .kids, .sw i { transition: none !important; }
-  .panel.on, .win.open .card, .preview .fbig { animation: none; }
-}
+html.a-rm .win, html.a-rm .search, html.a-rm .scrim, html.a-rm .wall i, html.a-rm .kids, html.a-rm .sw i { transition: none !important; }
+html.a-rm .panel.on, html.a-rm .win.open .card, html.a-rm .preview .fbig { animation: none; }
 
 /* ---------- the apps button and the dock ---------- */
 .dockwrap {
@@ -772,10 +768,8 @@ html.cur-dot, html.cur-dot * {
   .win .split { grid-template-columns: 1fr; }
   .win .side { display: none; }
 }
-@media (prefers-reduced-motion: reduce) {
-  .capsule, .item, .chevron, .dock, .tile .rise, .bubble, .pop, .tip { transition: none !important; }
-  .tile.bounce .rise, .ripple { animation: none; }
-}
+html.a-rm .capsule, html.a-rm .item, html.a-rm .chevron, html.a-rm .dock, html.a-rm .tile .rise, html.a-rm .bubble, html.a-rm .pop, html.a-rm .tip { transition: none !important; }
+html.a-rm .tile.bounce .rise, html.a-rm .ripple { animation: none; }
 
 .welcome {
   position: absolute; left: 50%; top: 50%;
@@ -809,9 +803,7 @@ html.cur-dot, html.cur-dot * {
 .cluster circle.on { opacity: var(--o); animation: breathe var(--d) ease-in-out var(--delay) infinite; }
 @keyframes drift   { to { transform: rotate(360deg); } }
 @keyframes breathe { 0%, 100% { opacity: var(--o); } 50% { opacity: calc(var(--o) * .35); } }
-@media (prefers-reduced-motion: reduce) {
-  .cluster g, .cluster circle.on { animation: none; }
-}
+html.a-rm .cluster g, html.a-rm .cluster circle.on { animation: none; }
 /* ======================= setup ======================= */
 .setup {
   position: fixed; inset: 0; z-index: 5;
@@ -953,9 +945,7 @@ html.cur-dot, html.cur-dot * {
   .wheel { height: 250px; }
   .sprev { display: none; }
 }
-@media (prefers-reduced-motion: reduce) {
-  .sstage, .setup { transition: none !important; }
-}
+html.a-rm .sstage, html.a-rm .setup { transition: none !important; }
 
 /* ======================= adaptive icons ======================= */
 html.adaptive .tile .rise svg { filter: grayscale(1) contrast(1.05) brightness(1.06); }
@@ -1018,6 +1008,8 @@ html.dark .wband { background: rgba(111,147,255,.08); box-shadow: inset 0 0 0 1p
 html.dark .mock { box-shadow: 0 0 0 1px rgba(255,255,255,.08), 0 14px 32px -16px rgba(0,0,0,.8); }
 html.dark .batbar, html.dark .x { background: rgba(255,255,255,.08); }
 </style>
+<link rel="stylesheet" href="access.css">
+<script src="access.js"></script>
 </head>
 <body>
 
@@ -1143,9 +1135,9 @@ html.dark .batbar, html.dark .x { background: rgba(255,255,255,.08); }
         <div class="panel" data-panel="about">
           <div class="about">
             <svg viewBox="0 0 100 100" aria-hidden="true"><g fill="#0141FD"><g transform="rotate(0 50 50)"><polygon points="50,52 29,9 64,1 60,47"/></g><g transform="rotate(90 50 50)"><polygon points="50,52 29,9 64,1 60,47"/></g><g transform="rotate(180 50 50)"><polygon points="50,52 29,9 64,1 60,47"/></g><g transform="rotate(270 50 50)"><polygon points="50,52 29,9 64,1 60,47"/></g><circle cx="50" cy="50" r="10"/></g></svg>
-            <div class="name">Windmill</div>
+            <div class="name brandword">Windmill</div>
             <p>Your computer's apps, in one calm space. This is a preview of how the app will look and feel.</p>
-            <div class="meta">Preview &middot; v0.1</div>
+            <div class="meta">Preview &middot; v0.2</div>
           </div>
         </div>
       </div>
@@ -1222,7 +1214,7 @@ html.dark .batbar, html.dark .x { background: rgba(255,255,255,.08); }
   const $ = id => document.getElementById(id);
   const text = $("text"), clip = $("reveal"), dotsG = $("dots"),
         pill = $("signin"), holo = $("holo");
-  const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
+  let reduce = document.documentElement.classList.contains("a-rm");   // Settings -> Accessibility -> Reduce motion
   const FONT_PX = 200;
   const BLADE = "50,52 29,9 64,1 60,47";   // one sail of the Windmill mark, in a 100x100 box
 
@@ -1871,6 +1863,7 @@ html.dark .batbar, html.dark .x { background: rgba(255,255,255,.08); }
     if (c !== "system") document.documentElement.classList.add("cur-" + c);
     document.querySelectorAll(".ccard").forEach(b => { b.classList.toggle("on", b.dataset.cursor === c); b.setAttribute("aria-pressed", b.dataset.cursor === c); });
     prefs.cursor = c; if (persist) savePrefs();
+    window.dispatchEvent(new CustomEvent("windmill:cursor", { detail: c }));
   }
   function setBarItem(key, on, persist = true, instant = false) {
     const el = document.querySelector(`.bar [data-bar="${key}"]`);
@@ -2209,7 +2202,10 @@ html.dark .batbar, html.dark .x { background: rgba(255,255,255,.08); }
   const answers = {};
 
   function stepList() {
+    const A = window.WindmillA11y;
     const list = [
+      { key: "font", title: "Which letters read best for you?", sub: "Scroll to try each one. You can change it, and much more, in Settings → Accessibility.",
+        items: (A ? A.FONTS : []).map(f => ({ v: f.v, l: f.l, font: f.css })), def: A ? A.get().font : "default", preview: "font" },
       { key: "country", title: "Where are you?", sub: "Pick your country or region.", items: COUNTRIES.map(([v, l]) => ({ v, l })), def: prefs.country || guessCountry() },
       { key: "lang", title: "Which language?", sub: "The one Windmill should use with you.", items: LANGS.map(([v, l]) => ({ v, l })), def: prefs.lang || guessLang() },
     ];
@@ -2251,6 +2247,7 @@ html.dark .batbar, html.dark .x { background: rgba(255,255,255,.08); }
     witems = step.items.map((it, i) => {
       const d = document.createElement("div");
       d.className = "wi"; d.textContent = it.l; d.dataset.i = i; d.setAttribute("role", "option");
+      if (it.font) d.style.fontFamily = it.font;
       wtrack.appendChild(d);
       return d;
     });
@@ -2269,6 +2266,7 @@ html.dark .batbar, html.dark .x { background: rgba(255,255,255,.08); }
     const v = wstep.items[wIdx].v;
     answers[wstep.key] = v;
     if (wstep.key === "theme") setTheme(v);
+    if (wstep.key === "font" && window.WindmillA11y && window.WindmillA11y.get().font !== v) window.WindmillA11y.set({ font: v });
     if (wstep.key === "country") { steps = stepList(); $("snum").textContent = `${si + 1} of ${steps.length}`; paintProgress(); }
     paintPreview();
   }
@@ -2323,6 +2321,8 @@ html.dark .batbar, html.dark .x { background: rgba(255,255,255,.08); }
       box.firstChild.textContent = new Date().toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit", hour12: !!val("hour12", sysHour12) });
     } else if (st.preview === "mock") {
       box.innerHTML = `<div class="mock${theme === "dark" ? " dark" : ""}"><span class="mw wprev wp-${wall}"></span><div class="mbar"><i></i><i></i></div><div class="mdock"><b></b><b></b><b></b><b></b><b></b></div></div>`;
+    } else if (st.preview === "font") {
+      box.innerHTML = '<div class="fontprev"><b>Aa</b><p>Every app you own, in one calm space. Windmill uses these letters everywhere.</p></div>';
     } else if (st.preview === "icons") {
       box.innerHTML = `<div class="icons-prev${adaptive ? " on" : ""}${theme === "dark" ? " dark" : ""}"><b></b><b></b><b></b><b></b><b></b></div><div class="prevnote">Blank for now. The real app icons come later.</div>`;
     } else box.innerHTML = "";
@@ -2393,7 +2393,7 @@ html.dark .batbar, html.dark .x { background: rgba(255,255,255,.08); }
   }
 
   window.Windmill = {
-    $, NS, reduce, prefs, savePrefs, openWin, closeWin, showSection, setWall, setCursor, setBarItem, setTheme, setAdaptive,
+    $, NS, prefs, savePrefs, openWin, closeWin, showSection, setWall, setCursor, setBarItem, setTheme, setAdaptive,
     openSearch, closeSearch, openDock, closeDock, lens, lensAll, pressable, showTip, hideTip, paintTime, renderSearch,
     INDEX, dock, homeEl, WX, WELCOME,
     wireTip(el) {
@@ -2402,6 +2402,8 @@ html.dark .batbar, html.dark .x { background: rgba(255,255,255,.08); }
       el.addEventListener("pointerdown", hideTip);
     },
     setHour12(v) { hour12 = v; paintTime(); },
+    get reduce() { return reduce; },
+    setReduce(v) { reduce = !!v; },
     get weather() { return wxNow; },
     get openWindow() { return openWinEl; },
     get volume() { return { level: vol, muted }; },

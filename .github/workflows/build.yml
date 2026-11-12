@@ -146,6 +146,10 @@ jobs:
     needs: [windows, android]
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: .github
+
       - uses: actions/download-artifact@v4
         with:
           path: dist
@@ -153,6 +157,15 @@ jobs:
 
       - name: Files to publish
         run: find dist -type f
+
+      - name: Release notes
+        shell: bash
+        env:
+          TAG: ${{ github.ref_type == 'tag' && github.ref_name || inputs.release_tag }}
+        run: |
+          f=".github/release-notes/${TAG}.md"
+          { if [ -f "$f" ]; then cat "$f"; echo; fi; cat .github/release-notes/install.md; } > notes.md
+          cat notes.md
 
       - uses: softprops/action-gh-release@v2
         with:
@@ -165,13 +178,4 @@ jobs:
             dist/**/*.apk
           fail_on_unmatched_files: true
           generate_release_notes: true
-          body: |
-            The first preview of Windmill for Windows and Android.
-
-            **Windows:** download `Windmill-Windows-Setup.exe` and run it. Windows may warn that the
-            installer isn't signed yet: choose **More info -> Run anyway**. Press **Ctrl + Win** any time
-            for the Windmill panel.
-
-            **Android:** download `Windmill-Android.apk` on your phone and open it (allow installing
-            from your browser when asked). On your PC, open Windmill -> Phone -> Let my phone connect,
-            then type the address and code into the phone.
+          body_path: notes.md
