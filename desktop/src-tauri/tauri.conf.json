@@ -4,7 +4,7 @@
   "version": "0.1.0",
   "identifier": "app.windmill.desktop",
   "build": {
-    "frontendDist": "../../docs"
+    "frontendDist": "../../docs/app"
   },
   "app": {
     "withGlobalTauri": true,
