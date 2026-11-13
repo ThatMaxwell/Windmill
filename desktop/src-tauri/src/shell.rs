@@ -428,47 +428,63 @@ pub fn quit_windmill<R: Runtime>(app: AppHandle<R>) {
     app.exit(0);
 }
 
-// ---------- use this PC from your phone ----------
+// ---------- use this PC from your phone (from anywhere; the link itself lives in remote.js) ----------
 
+/// Screen size and PC name for a phone that just paired.
 #[tauri::command]
-pub fn remote_start<R: Runtime>(app: AppHandle<R>) -> Res<serde_json::Value> {
+pub fn remote_hello() -> Res<serde_json::Value> {
     #[cfg(windows)]
     {
-        return win::remote::start(app).map(|s| serde_json::to_value(s).unwrap_or_default());
+        return Ok(win::remote::hello());
+    }
+    #[allow(unreachable_code)]
+    unsupported()
+}
+
+/// The next JPEG of the screen, as raw bytes (an ArrayBuffer in the page). Waits for a change.
+#[tauri::command]
+pub async fn remote_frame(width: Option<i32>, quality: Option<u8>) -> Res<tauri::ipc::Response> {
+    #[cfg(windows)]
+    {
+        let (w, q) = (width.unwrap_or(1280), quality.unwrap_or(60));
+        let bytes = tauri::async_runtime::spawn_blocking(move || win::remote::next_frame(w, q))
+            .await
+            .map_err(|e| e.to_string())?;
+        return Ok(tauri::ipc::Response::new(bytes));
     }
     #[allow(unreachable_code)]
     {
-        let _ = app;
+        let _ = (width, quality);
         unsupported()
     }
 }
 
+/// A tap, drag, scroll or typing from the paired phone.
 #[tauri::command]
-pub fn remote_stop() -> Res<serde_json::Value> {
+pub fn remote_input<R: Runtime>(app: AppHandle<R>, event: serde_json::Value) -> Res<()> {
     #[cfg(windows)]
     {
-        return Ok(serde_json::to_value(win::remote::stop()).unwrap_or_default());
+        win::remote::input(&app, &event);
+        return Ok(());
     }
     #[allow(unreachable_code)]
-    unsupported()
+    {
+        let _ = (app, event);
+        unsupported()
+    }
 }
 
+/// Keeps the matchmaking connection alive while "Let my phone connect" is on.
 #[tauri::command]
-pub fn remote_status() -> Res<serde_json::Value> {
+pub fn remote_keepalive<R: Runtime>(app: AppHandle<R>, on: bool) -> Res<()> {
     #[cfg(windows)]
     {
-        return Ok(serde_json::to_value(win::remote::status()).unwrap_or_default());
+        win::remote::keepalive(app, on);
+        return Ok(());
     }
     #[allow(unreachable_code)]
-    unsupported()
-}
-
-#[tauri::command]
-pub fn remote_new_code() -> Res<serde_json::Value> {
-    #[cfg(windows)]
     {
-        return Ok(serde_json::to_value(win::remote::new_code()).unwrap_or_default());
+        let _ = (app, on);
+        unsupported()
     }
-    #[allow(unreachable_code)]
-    unsupported()
 }

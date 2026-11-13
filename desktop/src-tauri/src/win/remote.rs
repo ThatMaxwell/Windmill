@@ -1,22 +1,19 @@
-//! Use this PC from your Android phone, over your own Wi-Fi.
+//! Use this PC from your phone, from anywhere: Wi-Fi, Ethernet, mobile data, another network.
 //!
-//! When you turn it on in Windmill (Phone), the PC listens on port 47321 of your local network.
-//! The phone must send the 6-digit code shown on the PC before anything else; only one phone at a time.
-//! The PC streams small JPEG frames of the main screen (one at a time: the phone asks for the next one)
-//! and the phone sends taps, drags, scrolls and typing back.
+//! The connection itself lives in Windmill's window (remote.js): the PC and the phone find each
+//! other through a public matchmaking server using the pairing code, then talk directly over an
+//! encrypted WebRTC link (or, when a network blocks that, through an encrypted relay).
+//! This side only does what a web page can't: grab the screen, and press keys and click for the phone.
+//! Nothing listens on a port, and nothing happens unless "Let my phone connect" is on.
 
-use serde::Serialize;
 use serde_json::{json, Value};
 use std::collections::hash_map::DefaultHasher;
 use std::ffi::c_void;
-use std::hash::{BuildHasher, Hash, Hasher};
-use std::io::ErrorKind;
-use std::net::{TcpListener, TcpStream, UdpSocket};
-use std::sync::atomic::{AtomicBool, Ordering};
-use std::sync::{Arc, Mutex};
+use std::hash::{Hash, Hasher};
+use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
+use std::sync::Mutex;
 use std::time::{Duration, Instant};
 use tauri::{AppHandle, Emitter, Manager, Runtime};
-use tungstenite::{accept, Message};
 use windows::Win32::Foundation::HWND;
 use windows::Win32::Graphics::Gdi::{
     BitBlt, CreateCompatibleBitmap, CreateCompatibleDC, DeleteDC, DeleteObject, GetDC, GetDIBits, ReleaseDC,
@@ -34,195 +31,82 @@ use windows::Win32::UI::WindowsAndMessaging::{
     SM_CYSCREEN,
 };
 
-pub const PORT: u16 = 47321;
-const MAX_WIDTH: i32 = 1280;
+/// The last frame handed out, so an unchanged screen isn't sent again.
+static LAST_HASH: AtomicU64 = AtomicU64::new(0);
+static LAST_AT: Mutex<Option<Instant>> = Mutex::new(None);
+static TICKING: AtomicBool = AtomicBool::new(false);
+/// At most ~20 frames a second, even on a fast network.
+const MIN_GAP: Duration = Duration::from_millis(50);
+/// A frame goes out at least this often, even when nothing on screen changed.
+const REFRESH: Duration = Duration::from_millis(1500);
 
-#[derive(Serialize, Clone, Default)]
-pub struct Status {
-    pub running: bool,
-    pub port: u16,
-    pub address: Option<String>,
-    pub code: String,
-    pub phone: Option<String>,
+/// The screen size and the PC's name, for a phone that just paired. Also starts frames fresh.
+pub fn hello() -> Value {
+    LAST_HASH.store(0, Ordering::SeqCst);
+    *LAST_AT.lock().unwrap() = None;
+    let (w, h) = unsafe { (GetSystemMetrics(SM_CXSCREEN), GetSystemMetrics(SM_CYSCREEN)) };
+    let name = std::env::var("COMPUTERNAME").unwrap_or_else(|_| "your PC".into());
+    json!({ "w": w, "h": h, "name": name })
 }
 
-struct State {
-    running: bool,
-    code: String,
-    phone: Option<String>,
-    stop: Arc<AtomicBool>,
-}
-
-static STATE: Mutex<Option<State>> = Mutex::new(None);
-
-fn random_code() -> String {
-    let mut h: DefaultHasher = std::collections::hash_map::RandomState::new().build_hasher();
-    std::time::SystemTime::now().hash(&mut h);
-    std::process::id().hash(&mut h);
-    format!("{:06}", h.finish() % 1_000_000)
-}
-
-/// The PC's address on the local network (no traffic is sent to find it).
-fn local_address() -> Option<String> {
-    let s = UdpSocket::bind("0.0.0.0:0").ok()?;
-    s.connect("8.8.8.8:80").ok()?;
-    Some(s.local_addr().ok()?.ip().to_string())
-}
-
-pub fn status() -> Status {
-    let st = STATE.lock().unwrap();
-    match st.as_ref() {
-        Some(s) => Status {
-            running: s.running,
-            port: PORT,
-            address: local_address(),
-            code: s.code.clone(),
-            phone: s.phone.clone(),
-        },
-        None => Status { port: PORT, address: local_address(), ..Default::default() },
-    }
-}
-
-pub fn new_code() -> Status {
-    if let Some(s) = STATE.lock().unwrap().as_mut() {
-        s.code = random_code();
-    }
-    status()
-}
-
-pub fn stop() -> Status {
-    if let Some(s) = STATE.lock().unwrap().as_mut() {
-        s.stop.store(true, Ordering::SeqCst);
-        s.running = false;
-        s.phone = None;
-    }
-    status()
-}
-
-pub fn start<R: Runtime>(app: AppHandle<R>) -> Result<Status, String> {
-    {
-        let st = STATE.lock().unwrap();
-        if st.as_ref().map(|s| s.running).unwrap_or(false) {
-            drop(st);
-            return Ok(status());
+/// The next JPEG of the main screen: waits until the screen changes (or a refresh is due),
+/// so the window never has to poll. Empty when there's nothing new for a while.
+pub fn next_frame(max_width: i32, quality: u8) -> Vec<u8> {
+    let started = Instant::now();
+    if let Some(at) = *LAST_AT.lock().unwrap() {
+        let since = at.elapsed();
+        if since < MIN_GAP {
+            std::thread::sleep(MIN_GAP - since);
         }
     }
-    let listener = TcpListener::bind(("0.0.0.0", PORT))
-        .map_err(|e| format!("Couldn't open port {PORT}: {e}. Is another copy of Windmill running?"))?;
-    listener.set_nonblocking(true).map_err(|e| e.to_string())?;
-    let stop = Arc::new(AtomicBool::new(false));
-    *STATE.lock().unwrap() = Some(State { running: true, code: random_code(), phone: None, stop: stop.clone() });
-
-    std::thread::spawn(move || {
-        while !stop.load(Ordering::SeqCst) {
-            match listener.accept() {
-                Ok((stream, peer)) => {
-                    let busy = STATE.lock().unwrap().as_ref().map(|s| s.phone.is_some()).unwrap_or(true);
-                    if busy {
-                        let _ = stream.shutdown(std::net::Shutdown::Both);
-                        continue;
-                    }
-                    let app = app.clone();
-                    let stop = stop.clone();
-                    std::thread::spawn(move || session(app, stream, peer.ip().to_string(), stop));
+    loop {
+        if let Some((px, w, h, hash)) = capture(max_width.clamp(480, 1920)) {
+            let due = LAST_AT.lock().unwrap().map(|t| t.elapsed() > REFRESH).unwrap_or(true);
+            if hash != LAST_HASH.load(Ordering::SeqCst) || due {
+                let mut out = Vec::with_capacity(120_000);
+                if jpeg_encoder::Encoder::new(&mut out, quality.clamp(25, 90))
+                    .encode(&px, w as u16, h as u16, jpeg_encoder::ColorType::Bgra)
+                    .is_ok()
+                {
+                    LAST_HASH.store(hash, Ordering::SeqCst);
+                    *LAST_AT.lock().unwrap() = Some(Instant::now());
+                    return out;
                 }
-                Err(e) if e.kind() == ErrorKind::WouldBlock => std::thread::sleep(Duration::from_millis(150)),
-                Err(_) => std::thread::sleep(Duration::from_millis(500)),
             }
         }
-    });
-    Ok(status())
-}
-
-fn set_phone(p: Option<String>) {
-    if let Some(s) = STATE.lock().unwrap().as_mut() {
-        s.phone = p;
+        if started.elapsed() > Duration::from_secs(2) {
+            return vec![];
+        }
+        std::thread::sleep(Duration::from_millis(60));
     }
 }
 
-fn session<R: Runtime>(app: AppHandle<R>, stream: TcpStream, peer: String, stop: Arc<AtomicBool>) {
-    let _ = stream.set_nonblocking(false);
-    let _ = stream.set_nodelay(true);
-    let _ = stream.set_read_timeout(Some(Duration::from_secs(15)));
-    let Ok(mut ws) = accept(stream) else { return };
-
-    // 1. the phone proves it knows the code
-    let ok = match ws.read() {
-        Ok(Message::Text(t)) => {
-            let v: Value = serde_json::from_str(&t).unwrap_or_default();
-            let want = STATE.lock().unwrap().as_ref().map(|s| s.code.clone()).unwrap_or_default();
-            v["t"] == "hello" && v["code"].as_str().map(|c| c.replace(' ', "")) == Some(want)
-        }
-        _ => false,
-    };
-    if !ok {
-        let _ = ws.send(Message::Text(json!({ "t": "error", "why": "That code doesn't match. Check the code on your PC." }).to_string()));
-        let _ = ws.close(None);
+/// While the phone feature is on, a heartbeat for the window every 10 seconds, so the connection to
+/// the matchmaking server stays up even when Windows lets Windmill's window sleep behind your apps.
+pub fn keepalive<R: Runtime>(app: AppHandle<R>, on: bool) {
+    if !on {
+        TICKING.store(false, Ordering::SeqCst);
         return;
     }
-    let (sw, sh) = unsafe { (GetSystemMetrics(SM_CXSCREEN), GetSystemMetrics(SM_CYSCREEN)) };
-    let name = std::env::var("COMPUTERNAME").unwrap_or_else(|_| "your PC".into());
-    let _ = ws.send(Message::Text(json!({ "t": "ok", "w": sw, "h": sh, "name": name }).to_string()));
-    set_phone(Some(peer.clone()));
-    let _ = app.emit("windmill://remote", json!({ "phone": peer }));
-
-    // 2. frames out, input in
-    let _ = ws.get_ref().set_read_timeout(Some(Duration::from_millis(12)));
-    let mut want_frame = true;
-    let mut last_hash = 0u64;
-    let mut last_sent = Instant::now() - Duration::from_secs(5);
-    let mut waiting_since = Instant::now();
-    'outer: while !stop.load(Ordering::SeqCst) {
-        loop {
-            match ws.read() {
-                Ok(Message::Text(t)) => {
-                    let v: Value = serde_json::from_str(&t).unwrap_or_default();
-                    if v["t"] == "ack" {
-                        want_frame = true;
-                    } else if v["t"] == "bye" {
-                        break 'outer;
-                    } else {
-                        handle(&app, &v, sw, sh);
-                    }
-                }
-                Ok(Message::Close(_)) => break 'outer,
-                Ok(_) => {}
-                Err(tungstenite::Error::Io(e)) if matches!(e.kind(), ErrorKind::WouldBlock | ErrorKind::TimedOut) => break,
-                Err(_) => break 'outer,
-            }
-        }
-        // the phone asks for each frame, so slow Wi-Fi never piles them up; resend if an ack got lost
-        if !want_frame && waiting_since.elapsed() > Duration::from_secs(3) {
-            want_frame = true;
-        }
-        if want_frame && last_sent.elapsed() >= Duration::from_millis(70) {
-            if let Some((jpeg, hash)) = frame() {
-                if hash != last_hash || last_sent.elapsed() > Duration::from_millis(1500) {
-                    if ws.send(Message::Binary(jpeg)).is_err() {
-                        break;
-                    }
-                    last_hash = hash;
-                    last_sent = Instant::now();
-                    want_frame = false;
-                    waiting_since = Instant::now();
-                }
-            }
-        }
-        std::thread::sleep(Duration::from_millis(8));
+    if TICKING.swap(true, Ordering::SeqCst) {
+        return;
     }
-    let _ = ws.close(None);
-    set_phone(None);
-    let _ = app.emit("windmill://remote", json!({ "phone": null }));
+    std::thread::spawn(move || {
+        while TICKING.load(Ordering::SeqCst) {
+            let _ = app.emit("windmill://remote-tick", ());
+            std::thread::sleep(Duration::from_secs(10));
+        }
+    });
 }
 
-/// One small JPEG of the main screen, cursor included, plus a hash to skip identical frames.
-fn frame() -> Option<(Vec<u8>, u64)> {
+/// The main screen as BGRA pixels, cursor included, scaled to at most `max_width`, plus a hash.
+fn capture(max_width: i32) -> Option<(Vec<u8>, i32, i32, u64)> {
     unsafe {
         let (sw, sh) = (GetSystemMetrics(SM_CXSCREEN), GetSystemMetrics(SM_CYSCREEN));
         if sw <= 0 || sh <= 0 {
             return None;
         }
-        let scale = (MAX_WIDTH as f32 / sw as f32).min(1.0);
+        let scale = (max_width as f32 / sw as f32).min(1.0);
         let (tw, th) = (((sw as f32) * scale) as i32, ((sh as f32) * scale) as i32);
         let screen = GetDC(HWND::default());
         let mem = CreateCompatibleDC(screen);
@@ -266,12 +150,9 @@ fn frame() -> Option<(Vec<u8>, u64)> {
             return None;
         }
         let mut h = DefaultHasher::new();
+        (tw, th).hash(&mut h);
         px.iter().step_by(97).for_each(|b| b.hash(&mut h));
-        let mut out = Vec::with_capacity(120_000);
-        jpeg_encoder::Encoder::new(&mut out, 58)
-            .encode(&px, tw as u16, th as u16, jpeg_encoder::ColorType::Bgra)
-            .ok()?;
-        Some((out, h.finish()))
+        Some((px, tw, th, h.finish()))
     }
 }
 
@@ -295,7 +176,8 @@ fn key(vk: u16, scan: u16, flags: KEYBD_EVENT_FLAGS) -> INPUT {
     }
 }
 
-fn handle<R: Runtime>(app: &AppHandle<R>, v: &Value, _sw: i32, _sh: i32) {
+/// A tap, drag, scroll, or typing from the phone.
+pub fn input<R: Runtime>(app: &AppHandle<R>, v: &Value) {
     let at = || {
         let x = (v["x"].as_f64().unwrap_or(0.0).clamp(0.0, 1.0) * 65535.0) as i32;
         let y = (v["y"].as_f64().unwrap_or(0.0).clamp(0.0, 1.0) * 65535.0) as i32;
@@ -313,8 +195,8 @@ fn handle<R: Runtime>(app: &AppHandle<R>, v: &Value, _sw: i32, _sh: i32) {
         "up" => send(&[at(), mouse(up, 0, 0, 0)]),
         "click" => send(&[at(), mouse(down, 0, 0, 0), mouse(up, 0, 0, 0)]),
         "wheel" => {
-            let dy = v["dy"].as_f64().unwrap_or(0.0) as i32;
-            let dx = v["dx"].as_f64().unwrap_or(0.0) as i32;
+            let dy = v["dy"].as_f64().unwrap_or(0.0).clamp(-2400.0, 2400.0) as i32;
+            let dx = v["dx"].as_f64().unwrap_or(0.0).clamp(-2400.0, 2400.0) as i32;
             if dy != 0 {
                 send(&[mouse(MOUSEEVENTF_WHEEL, 0, 0, dy)]);
             }
@@ -324,7 +206,7 @@ fn handle<R: Runtime>(app: &AppHandle<R>, v: &Value, _sw: i32, _sh: i32) {
         }
         "text" => {
             let mut inputs = vec![];
-            for u in v["s"].as_str().unwrap_or("").encode_utf16() {
+            for u in v["s"].as_str().unwrap_or("").chars().take(500).collect::<String>().encode_utf16() {
                 inputs.push(key(0, u, KEYEVENTF_UNICODE));
                 inputs.push(key(0, u, KEYEVENTF_UNICODE | KEYEVENTF_KEYUP));
             }

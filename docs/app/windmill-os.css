@@ -431,9 +431,19 @@ html.a-rm .wall i[data-w="live-aurora"] b { animation: none; }
 /* ---------- Phone window on the PC ---------- */
 .rmpc { align-content: start !important; justify-items: start !important; place-items: start !important; gap: 10px !important; }
 .rmpc-h { display: flex; align-items: center; justify-content: space-between; gap: 12px; width: 100%; }
-.rmpc .digits { font-size: 30px; }
-.rmpc .digits.addr { font-size: 22px; letter-spacing: .02em; }
+.rmpc { overflow: auto; }
+.rmpc .digits { font-size: 30px; letter-spacing: .05em; white-space: nowrap; }
+.rmpc .digits.fresh { animation: rmfresh .6s var(--spring-soft, ease); }
+@keyframes rmfresh { from { opacity: 0; translate: 0 8px; filter: blur(4px); } }
 .rmpc #rmOn { display: grid; gap: 6px; }
+.rmpc-acts { display: flex; gap: 8px; flex-wrap: wrap; }
+.rmpc-state { display: flex; align-items: center; gap: 8px; }
+.rmpc-state i { width: 8px; height: 8px; border-radius: 50%; flex: none; background: rgba(20,24,40,.25); transition: background-color .3s ease; }
+.rmpc-state[data-s="ready"] i { background: #1f9d55; box-shadow: 0 0 0 4px rgba(31,157,85,.15); }
+.rmpc-state[data-s="connected"] i { background: var(--blue); box-shadow: 0 0 0 4px rgba(var(--blue-rgb),.18); animation: rmpulse 1.8s ease-in-out infinite; }
+.rmpc-state[data-s="wait"] i { background: #e0a100; }
+@keyframes rmpulse { 50% { box-shadow: 0 0 0 7px rgba(var(--blue-rgb),.04); } }
+html.a-rm .rmpc-state i, html.a-rm .rmpc .digits.fresh { animation: none; }
 .steps a { color: var(--blue); }
 
 /* ---------- the Android remote ---------- */
@@ -473,18 +483,12 @@ html.a-rm .rmc-art .a-wave { animation: none; }
 }
 .rmc-steps b { color: var(--ink); font-weight: 600; }
 .rmc-field { display: grid; gap: 8px; font: 600 13px/1 var(--sans); color: var(--glass-sub); min-width: 0; }
-.rmc-field input#rmAddr {
-  width: 100%; min-width: 0; height: 58px; border-radius: 18px; border: 0; padding: 0 18px;
-  font: 500 19px/1 var(--sans); letter-spacing: .02em; color: var(--ink); background: #f1f3f7; outline: none;
-  box-shadow: inset 0 0 0 1.5px transparent; transition: box-shadow .2s ease, background-color .2s ease;
-}
-.rmc-field input#rmAddr:focus { background: #fff; box-shadow: inset 0 0 0 2px var(--blue), 0 0 0 5px rgba(var(--blue-rgb), .12); }
-.rmc-field input::placeholder { color: rgba(20,24,40,.32); }
-.rmc-code { position: relative; display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 8px; }
+.rmc-code { position: relative; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)) 6px repeat(4, minmax(0, 1fr)); gap: 6px; }
+.rmc-gap { align-self: center; justify-self: center; width: 6px; height: 2px; border-radius: 2px; background: var(--glass-sub); opacity: .5; }
 .rmc-code input { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; border: 0; font-size: 16px; z-index: 2; caret-color: transparent; }
 .rmc-code i {
-  height: 60px; border-radius: 16px; background: #f1f3f7; display: grid; place-items: center;
-  font: 600 26px/1 var(--sans); font-style: normal; color: var(--ink); font-variant-numeric: tabular-nums;
+  height: 58px; border-radius: 14px; background: #f1f3f7; display: grid; place-items: center;
+  font: 600 24px/1 var(--sans); font-style: normal; color: var(--ink); font-variant-numeric: tabular-nums;
   box-shadow: inset 0 0 0 1.5px transparent; transition: box-shadow .18s ease, background-color .18s ease, scale .35s var(--spring);
 }
 .rmc-code i.full { background: #fff; box-shadow: inset 0 0 0 1.5px rgba(20,24,40,.14); }
@@ -507,9 +511,8 @@ html.a-rm .rmc-art .a-wave { animation: none; }
 .rmc-go.busy::before { content: ""; width: 18px; height: 18px; border-radius: 50%; border: 2.4px solid rgba(255,255,255,.35); border-top-color: #fff; animation: rmspin .8s linear infinite; }
 @keyframes rmspin { to { rotate: 360deg; } }
 .rm-note { margin: 0; text-align: center; font: 400 13px/1.4 var(--sans); color: var(--glass-sub); }
-html.dark .rmc-field input#rmAddr, html.dark .rmc-code i { background: rgba(255,255,255,.07); }
-html.dark .rmc-field input#rmAddr:focus, html.dark .rmc-code i.full, html.dark .rmc-code i.now { background: rgba(255,255,255,.1); }
-html.dark .rmc-field input::placeholder { color: rgba(255,255,255,.3); }
+html.dark .rmc-code i { background: rgba(255,255,255,.07); }
+html.dark .rmc-code i.full, html.dark .rmc-code i.now { background: rgba(255,255,255,.1); }
 html.dark .rmc-icon:active { background: rgba(255,255,255,.1); }
 
 /* the settings sheet */
@@ -563,6 +566,7 @@ html.phone img { -webkit-user-drag: none; }
   display: flex; align-items: center; gap: 2px; padding: 4px 4px 4px 14px; border-radius: 999px; --blur: 20px;
 }
 .rm-bar > * { position: relative; z-index: 4; }
-.rm-name { display: grid; gap: 2px; margin-right: 6px; font: 600 12.5px/1 var(--sans); color: var(--glass-ink); }
+.rm-name { display: grid; gap: 2px; margin-right: 6px; min-width: 0; max-width: 34vw; font: 600 12.5px/1 var(--sans); color: var(--glass-ink); }
+.rm-name b { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .rm-name small { font: 500 10.5px/1 var(--sans); color: var(--glass-sub); }
 .rm-kb { position: absolute; left: -9999px; top: 0; width: 10px; height: 10px; opacity: 0; }

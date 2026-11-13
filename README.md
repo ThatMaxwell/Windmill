@@ -81,19 +81,21 @@ Get both from the [latest release](https://github.com/ThatMaxwell/Windmill/relea
   <img src="docs/assets/deep/phone-session.webp" width="470" alt="A phone in landscape showing the PC's Windmill home, with a small bar for the keyboard, the panel, Esc and disconnect">
 </p>
 
-1. On your PC, open Windmill → **Phone** → turn on **Let my phone connect**. It shows your PC's address and a six-digit code.
-2. Open Windmill on your phone, type the address, then the code. It connects as soon as the last digit is in.
+It works **from anywhere**: your phone on Wi-Fi or mobile data, your PC on Wi-Fi or Ethernet, the same network or a different one.
+
+1. On your PC, open Windmill → **Phone** → turn on **Let my phone connect**. It shows an eight-character code, like `K7QM 4XPD`.
+2. Open Windmill on your phone (the Android app, or [thatmaxwell.github.io/Windmill/app/#remote](https://thatmaxwell.github.io/Windmill/app/#remote) in any phone's browser) and type the code. It connects as soon as the last character is in, and remembers your PC for next time.
 3. Your screen appears. Tap to click, hold to right-click, drag to move things, scroll with two fingers, and use the keyboard button to type. The Windmill button opens the panel on your PC.
 
 The gear on the phone's connect screen opens its settings: reading font (including OpenDyslexic), light or dark, the app icon, bold text and reduce motion.
 
 How it stays safe:
 
-- It's **off until you turn it on**, and you can turn it off any time.
-- It only listens on your **local network** (port `47321`). The first time, Windows asks whether Windmill can use private networks: choose **Allow**.
-- A phone must send the **six-digit code** before anything else. You can make a new code whenever you like.
-- Only **one phone** can be connected at a time.
-- The connection isn't encrypted yet, so only use it on networks you trust, like your home Wi-Fi.
+- It's **off until you turn it on**, and you can turn it off, or disconnect the phone, any time.
+- Your phone and PC find each other through a public matchmaking server ([PeerJS](https://peerjs.com)) using an anonymous ID made from the code. Then they talk **directly over WebRTC, which is always encrypted**. If a network blocks a direct link, an encrypted relay passes the data along; it can't see your screen or what you type.
+- Nothing listens on a port of your PC, so there's no firewall prompt.
+- A phone must know the **code** before anything else. **New code** makes every phone type it again.
+- Only **one phone** can be connected at a time, and your PC tells you when one connects.
 
 ## Privacy
 

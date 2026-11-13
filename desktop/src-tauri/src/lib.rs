@@ -83,10 +83,10 @@ pub fn run() {
             github::github_sign_out,
             appicon::get_app_icon,
             appicon::set_app_icon,
-            shell::remote_start,
-            shell::remote_stop,
-            shell::remote_status,
-            shell::remote_new_code,
+            shell::remote_hello,
+            shell::remote_frame,
+            shell::remote_input,
+            shell::remote_keepalive,
         ])
         .setup(|app| {
             // Like pressing F11: Windmill fills the screen from the very first frame, with the taskbar

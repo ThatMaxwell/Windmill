@@ -10,7 +10,8 @@
   if (!W) return;
   const T = window.__TAURI__;
   const isApp = !!(T && T.core && T.core.invoke);
-  const onPhone = isApp && /Android/i.test(navigator.userAgent);
+  // the phone remote: in the Android app, or on any phone's browser at app/#remote
+  const onPhone = (isApp && /Android/i.test(navigator.userAgent)) || document.documentElement.classList.contains("phone");
   const call = (cmd, args) => (isApp ? T.core.invoke(cmd, args) : Promise.reject(new Error("preview")));
   const { $, NS, prefs } = W;
   const save = () => W.savePrefs();
@@ -1082,49 +1083,77 @@
   if (isApp) call("get_app_icon").then(v => { if (v) { prefs.appIcon = v; save(); paintIconPick(); } }).catch(() => {});
   paintIconPick();
 
-  // ======================= Phone, on the PC: let your phone use this computer =======================
+  // ======================= Phone, on the PC: let your phone use this computer, from anywhere =======================
   function setupPhoneWindow() {
+    const L = window.WindmillLink;
+    if (!L) return;
     const body = document.querySelector("#win-phone .wbody");
     const sub = document.querySelector("#win-phone .wsub");
-    if (sub) sub.textContent = "Same Wi-Fi";
+    if (sub) sub.textContent = "From anywhere";
     body.innerHTML = `
       <div class="code rmpc">
         <div class="rmpc-h"><span class="ttl small">Let my phone connect</span><button class="sw" type="button" role="switch" aria-checked="false" aria-label="Let my phone connect" id="rmSw"><i></i></button></div>
         <div id="rmOn" hidden>
-          <div class="small">Address</div><div class="digits addr" id="rmIp">–</div>
-          <div class="small">Code</div><div class="digits" id="rmCodePc">–</div>
-          <button class="ghostbtn" type="button" id="rmNew">New code</button>
+          <div class="small">Code</div><div class="digits" id="rmCodePc" aria-live="polite">–</div>
+          <div class="rmpc-acts"><button class="ghostbtn" type="button" id="rmNew">New code</button><button class="ghostbtn" type="button" id="rmKick" hidden>Disconnect phone</button></div>
         </div>
-        <div class="small" id="rmState">Off. Nobody can connect.</div>
+        <div class="small rmpc-state" id="rmState"><i></i><span>Off. Nobody can connect.</span></div>
       </div>
       <ol class="steps">
-        <li>Get Windmill for Android from the <a href="#" id="rmGet">Releases page</a> and open it.</li>
-        <li>Type the address and code shown here.</li>
+        <li>Get Windmill for Android from the <a href="#" id="rmGet">Releases page</a>, or open <b>thatmaxwell.github.io/Windmill/app/#remote</b> on any phone.</li>
+        <li>Type the code shown here. Any network works: Wi-Fi, Ethernet, mobile data, a different place.</li>
         <li>Your screen shows up. Tap to click, hold to right-click, drag to move things, two fingers to scroll, and the keyboard button to type.</li>
       </ol>
-      <p class="note">Only phones on your Wi-Fi can reach it, and only with the code. The first time, Windows may ask whether Windmill can use private networks: choose Allow.</p>`;
-    const paint = s => {
-      $("rmSw").setAttribute("aria-checked", String(!!s.running));
-      $("rmOn").hidden = !s.running;
-      $("rmIp").textContent = s.address || "Not on a network";
-      $("rmCodePc").textContent = (s.code || "").replace(/(\d{3})(\d{3})/, "$1 $2");
-      $("rmState").textContent = !s.running ? "Off. Nobody can connect." : s.phone ? `Connected: ${s.phone}` : "Waiting for your phone…";
+      <p class="note">Your phone and PC find each other with the code, then talk directly, encrypted. If a network blocks that, an encrypted relay passes it along. Your phone remembers the code; New code makes every phone type it again.</p>`;
+    if (!prefs.remoteCode) { prefs.remoteCode = L.newCode(); save(); }
+    let link = null, lastPhone = null;
+    const paint = st => {
+      const on = !!link;
+      $("rmSw").setAttribute("aria-checked", String(on));
+      $("rmOn").hidden = !on;
+      $("rmCodePc").textContent = L.showCode(prefs.remoteCode);
+      $("rmKick").hidden = !(st && st.phone);
+      const s = st || { status: "off" };
+      const text = !on ? "Off. Nobody can connect."
+        : s.phone ? `Connected: ${s.phone}`
+        : s.status === "ready" ? "Ready. Your phone can connect from anywhere."
+        : s.error ? s.error
+        : s.status === "offline" ? "Waiting for the internet…" : "Getting ready…";
+      const st2 = $("rmState");
+      st2.lastElementChild.textContent = text;
+      st2.dataset.s = !on ? "off" : s.phone ? "connected" : s.status === "ready" ? "ready" : "wait";
+      if (s.phone !== lastPhone) {
+        if (s.phone) notify("Your phone connected", `${s.phone} is using this PC. Turn it off in Phone any time.`);
+        else if (lastPhone) notify("Your phone disconnected", "");
+        lastPhone = s.phone || null;
+      }
     };
-    const refresh = () => call("remote_status").then(paint).catch(() => {});
-    $("rmSw").addEventListener("click", async () => {
-      const on = $("rmSw").getAttribute("aria-checked") !== "true";
-      try { paint(await call(on ? "remote_start" : "remote_stop")); }
-      catch (e) { notify("Couldn't turn it on", String(e.message || e)); }
+    const startLink = () => {
+      if (link) link.stop();
+      link = L.host({ code: prefs.remoteCode, call, onState: paint });
+      call("remote_keepalive", { on: true }).catch(() => {});
+      paint(link.state);
+    };
+    const stopLink = () => {
+      if (link) link.stop();
+      link = null;
+      call("remote_keepalive", { on: false }).catch(() => {});
+      paint(null);
+    };
+    $("rmSw").addEventListener("click", () => {
+      const on = !link;
+      prefs.remoteOn = on; save();
+      on ? startLink() : stopLink();
     });
-    $("rmNew").addEventListener("click", () => call("remote_new_code").then(paint).catch(() => {}));
+    $("rmNew").addEventListener("click", () => {
+      prefs.remoteCode = L.newCode(); save();
+      if (link) startLink(); else paint(null);
+      const d = $("rmCodePc"); d.classList.remove("fresh"); void d.offsetWidth; d.classList.add("fresh");
+    });
+    $("rmKick").addEventListener("click", () => link && link.kick());
     $("rmGet").addEventListener("click", e => { e.preventDefault(); call("plugin:opener|open_url", { url: "https://github.com/ThatMaxwell/Windmill/releases" }).catch(() => {}); });
-    document.querySelector('.home [data-open="phone"]').addEventListener("click", refresh);
-    T.event.listen("windmill://remote", e => {
-      const p = e.payload && e.payload.phone;
-      notify(p ? "Your phone connected" : "Your phone disconnected", p ? `From ${p}. Turn it off in Phone any time.` : "");
-      refresh();
-    });
-    refresh();
+    T.event.listen("windmill://remote-tick", () => link && link.tick());
+    if (prefs.remoteOn) startLink(); else paint(null);
   }
 
   // ======================= the Android app: use your PC from the phone =======================
@@ -1145,16 +1174,15 @@
             <rect x="196" y="40" width="36" height="66" rx="9" class="a-line"/><path d="M209 98h10" class="a-line"/>
           </svg>
           <h1>Connect to your PC</h1>
-          <ol class="rmc-steps"><li><span>On your PC, open Windmill and go to <b>Phone</b>.</span></li><li><span>Turn on <b>Let my phone connect</b>, then type what it shows.</span></li></ol>
-          <label class="rmc-field"><span>PC address</span><input id="rmAddr" inputmode="decimal" placeholder="192.168.1.23" autocomplete="off" autocapitalize="off" spellcheck="false" enterkeyhint="next"></label>
+          <ol class="rmc-steps"><li><span>On your PC, open Windmill and go to <b>Phone</b>.</span></li><li><span>Turn on <b>Let my phone connect</b>, then type the code it shows.</span></li></ol>
           <div class="rmc-field"><span id="rmCodeL">Code</span>
-            <div class="rmc-code" id="rmCells"><input id="rmCode" inputmode="numeric" autocomplete="one-time-code" maxlength="6" enterkeyhint="go" aria-labelledby="rmCodeL">${"<i></i>".repeat(6)}</div>
+            <div class="rmc-code" id="rmCells"><input id="rmCode" inputmode="text" autocomplete="off" autocapitalize="characters" autocorrect="off" spellcheck="false" maxlength="12" enterkeyhint="go" aria-labelledby="rmCodeL">${"<i></i>".repeat(4)}<b class="rmc-gap" aria-hidden="true"></b>${"<i></i>".repeat(4)}</div>
           </div>
           <div class="rm-err" id="rmErr" role="alert"></div>
         </div>
         <footer class="rmc-foot">
           <button class="rmc-go" type="button" id="rmGo"><span>Connect</span></button>
-          <p class="rm-note">Your phone and PC need to be on the same Wi-Fi.</p>
+          <p class="rm-note">Works on any network: Wi-Fi, mobile data, even from somewhere else.</p>
         </footer>
       </section>
       <div class="rm-sheet" id="rmSheet" hidden>
@@ -1185,55 +1213,50 @@
         <textarea class="rm-kb" id="rmKb" autocapitalize="off" autocomplete="off" autocorrect="off" spellcheck="false" aria-label="Type on your PC"></textarea>
       </section>`;
     document.body.appendChild(rm);
-    const addr = $("rmAddr"), code = $("rmCode"), img = $("rmImg"), kb = $("rmKb");
-    addr.value = prefs.remoteAddr || "";
-    let ws = null, frames = 0, lastUrl = "";
-    const send = o => { if (ws && ws.readyState === 1) ws.send(JSON.stringify(o)); };
-    const fail = msg => { $("rmErr").textContent = msg; $("rms").hidden = true; $("rmc").hidden = false; $("rmGo").disabled = false; };
+    const L = window.WindmillLink;
+    const code = $("rmCode"), img = $("rmImg"), kb = $("rmKb");
+    code.value = L.normCode(prefs.remoteCode || "");
+    let link = null, frames = 0, lastUrl = "";
+    const send = o => { if (link) link.send(o); };
+    const fail = msg => { $("rmErr").textContent = msg || ""; $("rms").hidden = true; $("rmc").hidden = false; $("rmGo").disabled = false; };
+    const phoneName = /iPhone/.test(navigator.userAgent) ? "iPhone" : /iPad/.test(navigator.userAgent) ? "iPad" : /Android/.test(navigator.userAgent) ? "Android phone" : "Phone";
     function connect() {
-      const a = addr.value.trim(), c = code.value.replace(/\D/g, "");
-      if (!a) return fail("Type your PC's address.");
-      if (c.length !== 6) return fail("The code has 6 digits.");
-      prefs.remoteAddr = a; save();
+      const c = L.normCode(code.value);
+      if (c.length !== L.CODE_LEN) return fail(`The code has ${L.CODE_LEN} letters and numbers.`);
+      if (link) link.close();
       $("rmErr").textContent = ""; $("rmGo").disabled = true;
-      let said = false, inSession = false;
-      const failOnce = msg => { if (said) return; said = true; fail(msg); };
-      try { ws = new WebSocket(`ws://${a.includes(":") ? a : a + ":47321"}`); } catch (e) { return fail("That address doesn't look right."); }
-      ws.binaryType = "blob";
-      const timer = setTimeout(() => { if (ws.readyState !== 1) { failOnce("Couldn't reach your PC. Check the address, and that both are on the same Wi-Fi."); ws.close(); } }, 8000);
-      ws.onopen = () => { clearTimeout(timer); send({ t: "hello", code: c }); };
-      ws.onmessage = ev => {
-        if (typeof ev.data === "string") {
-          const m = JSON.parse(ev.data);
-          if (m.t === "ok") { inSession = true; $("rmName").textContent = m.name || "PC"; $("rmc").hidden = true; $("rms").hidden = false; $("rmGo").disabled = false; }
-          if (m.t === "error") failOnce(m.why || "Your PC said no.");
-          return;
-        }
-        const url = URL.createObjectURL(ev.data);
-        img.onload = () => { if (lastUrl) URL.revokeObjectURL(lastUrl); lastUrl = url; frames++; send({ t: "ack" }); };
-        img.onerror = () => send({ t: "ack" });
-        img.src = url;
-      };
-      ws.onclose = () => {
-        clearTimeout(timer);
-        if (inSession) { inSession = false; if (!$("rms").hidden) fail("Disconnected from your PC."); return; }
-        failOnce("Couldn't reach your PC. Check the address, and that Let my phone connect is on.");
-      };
-      ws.onerror = () => {};
+      const me = link = L.join(c, {
+        name: phoneName,
+        onOk: m => {
+          if (link !== me) return;
+          prefs.remoteCode = c; save();
+          $("rmName").textContent = m.name || "PC"; $("rmc").hidden = true; $("rms").hidden = false; $("rmGo").disabled = false;
+        },
+        onFrame: data => {
+          if (link !== me) return;
+          const url = URL.createObjectURL(new Blob([data], { type: "image/jpeg" }));
+          img.onload = () => { if (lastUrl) URL.revokeObjectURL(lastUrl); lastUrl = url; frames++; send({ t: "ack" }); };
+          img.onerror = () => { URL.revokeObjectURL(url); send({ t: "ack" }); };
+          img.src = url;
+        },
+        onError: msg => { if (link === me) { link = null; fail(msg); } },
+        onClose: msg => { if (link === me) { link = null; fail(msg); } },
+      });
     }
     $("rmGo").addEventListener("click", connect);
     code.addEventListener("keydown", e => { if (e.key === "Enter") connect(); });
-    addr.addEventListener("keydown", e => { if (e.key === "Enter") { e.preventDefault(); code.focus(); } });
-    // six boxes for the code; when the sixth digit lands, it connects by itself
+    // eight boxes for the code (4 + 4); when the last one lands, it connects by itself
     const cells = [...$("rmCells").querySelectorAll("i")];
     const paintCells = () => {
-      const v = code.value.replace(/\D/g, "").slice(0, 6); if (code.value !== v) code.value = v;
+      const v = L.normCode(code.value); if (code.value !== v) code.value = v;
       const focused = document.activeElement === code;
-      cells.forEach((c, i) => { c.textContent = v[i] || ""; c.classList.toggle("now", focused && i === Math.min(v.length, 5)); c.classList.toggle("full", !!v[i]); });
+      cells.forEach((c, i) => { c.textContent = v[i] || ""; c.classList.toggle("now", focused && i === Math.min(v.length, L.CODE_LEN - 1)); c.classList.toggle("full", !!v[i]); });
     };
-    code.addEventListener("input", () => { paintCells(); $("rmErr").textContent = ""; if (code.value.length === 6 && addr.value.trim()) { code.blur(); connect(); } });
+    code.addEventListener("input", () => { paintCells(); $("rmErr").textContent = ""; if (code.value.length === L.CODE_LEN) { code.blur(); connect(); } });
     code.addEventListener("focus", paintCells); code.addEventListener("blur", paintCells);
     paintCells();
+    // opened again later: it remembers your PC and goes straight there
+    if (code.value.length === L.CODE_LEN) setTimeout(connect, 350);
     // while connecting, the button says so
     new MutationObserver(() => {
       const busy = $("rmGo").disabled;
@@ -1346,7 +1369,7 @@
       if (r === "kb") { kb.focus(); kb.setSelectionRange(SENT.length, SENT.length); }
       if (r === "panel") send({ t: "panel" });
       if (r === "esc") send({ t: "key", k: "Escape" });
-      if (r === "bye") { send({ t: "bye" }); if (ws) ws.close(); $("rms").hidden = true; $("rmc").hidden = false; }
+      if (r === "bye") { if (link) link.close(); link = null; fail(""); }
     });
     requestAnimationFrame(() => rm.classList.add("on"));
   }
