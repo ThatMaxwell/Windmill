@@ -6,7 +6,9 @@
 <script>
 // Inside the Android app, Windmill is an app, not a web page: no zooming, no desktop layout behind it.
 (function () {
-  if (!(window.__TAURI__ || window.__TAURI_INTERNALS__) || !/Android/i.test(navigator.userAgent)) return;
+  // and on any phone's browser at app/#remote, Windmill is the remote for your PC
+  const web = location.hash === "#remote" && !(window.__TAURI__ || window.__TAURI_INTERNALS__);
+  if (!web && (!(window.__TAURI__ || window.__TAURI_INTERNALS__) || !/Android/i.test(navigator.userAgent))) return;
   document.documentElement.classList.add("phone");
   document.querySelector('meta[name="viewport"]').setAttribute("content", "width=device-width, initial-scale=1, minimum-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover");
 })();
@@ -523,7 +525,7 @@ html.cur-dot, html.cur-dot * {
   background: #fff; border-radius: 20px; box-shadow: 0 0 0 1px rgba(20,24,40,.06), 0 4px 14px -8px rgba(20,28,60,.25);
   display: grid; place-items: center; align-content: center; gap: 12px; padding: 18px;
 }
-.digits { font: 500 34px/1 ui-monospace, "SF Mono", "Cascadia Mono", Menlo, monospace; letter-spacing: .06em; color: var(--blue); font-variant-numeric: tabular-nums; transition: opacity .2s ease; }
+.digits { font: 500 34px/1 ui-monospace, "SF Mono", "Cascadia Mono", Menlo, monospace; letter-spacing: .06em; white-space: nowrap; color: var(--blue); font-variant-numeric: tabular-nums; transition: opacity .2s ease; }
 .digits.swap { opacity: 0; }
 .ghostbtn {
   appearance: none; border: 0; cursor: pointer;
@@ -1016,8 +1018,8 @@ html.dark .wband { background: rgba(111,147,255,.08); box-shadow: inset 0 0 0 1p
 html.dark .mock { box-shadow: 0 0 0 1px rgba(255,255,255,.08), 0 14px 32px -16px rgba(0,0,0,.8); }
 html.dark .batbar, html.dark .x { background: rgba(255,255,255,.08); }
 </style>
-<link rel="stylesheet" href="access.css?v=0.4.0">
-<script src="access.js?v=0.4.0"></script>
+<link rel="stylesheet" href="access.css?v=0.5.0">
+<script src="access.js?v=0.5.0"></script>
 </head>
 <body>
 
@@ -1173,16 +1175,16 @@ html.dark .batbar, html.dark .x { background: rgba(255,255,255,.08); }
   </section>
 
   <!-- Phone -->
-  <section class="glass win" id="win-phone" data-w="600" data-h="400" role="dialog" aria-label="Phone" aria-hidden="true">
-    <header class="whead"><h2>Phone</h2><span class="wsub">Coming to Android</span><button class="x" type="button" aria-label="Close Phone"><svg viewBox="0 0 14 14"><path d="M3 3l8 8M11 3l-8 8" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></button></header>
+  <section class="glass win" id="win-phone" data-w="680" data-h="470" role="dialog" aria-label="Phone" aria-hidden="true">
+    <header class="whead"><h2>Phone</h2><span class="wsub">From anywhere</span><button class="x" type="button" aria-label="Close Phone"><svg viewBox="0 0 14 14"><path d="M3 3l8 8M11 3l-8 8" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></button></header>
     <div class="wbody phone">
-      <div class="code"><div class="ttl small">Pairing code</div><div class="digits" id="pairCode">000 000</div><button class="ghostbtn" type="button" id="newCode">New code</button></div>
+      <div class="code"><div class="ttl small">Pairing code</div><div class="digits" id="pairCode">K7QM 4XPD</div><button class="ghostbtn" type="button" id="newCode">New code</button></div>
       <ol class="steps">
-        <li>Install Windmill on your Android phone.</li>
-        <li>Open it and tap <b>Pair with a computer</b>.</li>
-        <li>Type this code. This screen shows up on your phone, and you can use your apps from there.</li>
+        <li>Get Windmill for Android, or open <b>app/#remote</b> on any phone.</li>
+        <li>Type this code. Any network works: Wi-Fi, Ethernet, mobile data, somewhere else.</li>
+        <li>Your PC's screen shows up on your phone, and you can use your apps from there.</li>
       </ol>
-      <p class="note">The Android app isn't out yet. This shows how pairing will work.</p>
+      <p class="note">This is an example. In the Windows app, the code is real and connects your phone.</p>
     </div>
   </section>
   <div class="glass tip" id="tip" role="tooltip"></div>
@@ -2010,13 +2012,14 @@ html.dark .batbar, html.dark .x { background: rgba(255,255,255,.08); }
   // ---------- phone ----------
   function newPairCode() {
     const d = $("pairCode");
+    if (!d) return;   // in the Windows app, Phone shows the real code instead
     d.classList.add("swap");
     setTimeout(() => {
-      d.textContent = String(Math.floor(100000 + Math.random() * 900000)).replace(/(\d{3})(\d{3})/, "$1 $2");
+      d.textContent = window.WindmillLink ? window.WindmillLink.showCode(window.WindmillLink.newCode()) : "K7QM 4XPD";
       d.classList.remove("swap");
     }, 180);
   }
-  $("newCode").addEventListener("click", newPairCode);
+  $("newCode") && $("newCode").addEventListener("click", newPairCode);
 
   // ======================= Windmill Search =======================
   const search = $("search"), q = $("q"), sres = $("sres");
@@ -2493,13 +2496,14 @@ html.dark .batbar, html.dark .x { background: rgba(255,255,255,.08); }
   addEventListener("keydown", e => { if ((e.key === "r" || e.key === "R") && !e.ctrlKey && !e.metaKey && !e.altKey && !e.target.closest("input, textarea, .setup") && !document.querySelector(".search.on")) location.reload(); });
 })();
 </script>
-<link rel="stylesheet" href="windmill-os.css?v=0.4.0">
-<script src="windmill-os.js?v=0.4.0"></script>
-<link rel="stylesheet" href="glance.css?v=0.4.0">
-<script src="glance.js?v=0.4.0"></script>
-<link rel="stylesheet" href="shell.css?v=0.4.0">
-<script src="shell.js?v=0.4.0"></script>
-<link rel="stylesheet" href="files.css?v=0.4.0">
-<script src="files.js?v=0.4.0"></script>
+<link rel="stylesheet" href="windmill-os.css?v=0.5.0">
+<script src="remote.js?v=0.5.0"></script>
+<script src="windmill-os.js?v=0.5.0"></script>
+<link rel="stylesheet" href="glance.css?v=0.5.0">
+<script src="glance.js?v=0.5.0"></script>
+<link rel="stylesheet" href="shell.css?v=0.5.0">
+<script src="shell.js?v=0.5.0"></script>
+<link rel="stylesheet" href="files.css?v=0.5.0">
+<script src="files.js?v=0.5.0"></script>
 </body>
 </html>
