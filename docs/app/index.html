@@ -1777,6 +1777,8 @@ html.dark .batbar, html.dark .x { background: rgba(255,255,255,.08); }
       $("wxIcon").innerHTML = WX[kind];
       $("wxText").textContent = `${t}°`;
       $("wxBtn").dataset.label = `${word}, ${t}° in ${pl.name}`;
+      // time zones have no accents (Sao_Paulo); the weather service knows the real name (São Paulo)
+      if (pl.name && pl.name.localeCompare(city, undefined, { sensitivity: "base" }) === 0) { $("locText").textContent = pl.name; $("locBtn").dataset.label = `${pl.name} (from your time zone)`; }
       wxNow = { kind, word, t, place: pl.name };
       paintWidgets();
     } catch (e) { /* offline: the icon stays, no number */ }
